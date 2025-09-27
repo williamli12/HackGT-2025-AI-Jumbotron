@@ -11,4 +11,6 @@ export { getRegisteredEventKinds, isEventRegistered, logRegisteredEvents } from 
 export { default as TouchdownOverlay } from './TouchdownOverlay';
 export { default as PenaltyOverlay } from './PenaltyOverlay';
 export { default as TurnoverOverlay } from './TurnoverOverlay';
+export { default as CelebrationOverlay } from './CelebrationOverlay';
+export { default as ControversialCallOverlay } from './ControversialCallOverlay';
 export { default as ExampleAdvancedEvent } from './ExampleAdvancedEvent';
