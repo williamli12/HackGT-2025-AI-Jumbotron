@@ -69,8 +69,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     // Random horizontal drift (-20 to +20 pixels)
     const randomDrift = (Math.random() - 0.5) * 40;
     
-    // Decide randomly whether to spawn a heart or a fire emoji
-    const chosenSymbol = Math.random() < 0.5 ? '❤️' : '🔥';
+  // Decide randomly whether to spawn a heart (70%) or a fire emoji (30%)
+  const chosenSymbol = Math.random() < 0.7 ? '❤️' : '🔥';
 
     const newEmoji: FloatingEmoji = {
       id: Date.now() + Math.random(),
