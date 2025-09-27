@@ -1,22 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
 import type { EventComponentProps } from './registry';
 
-/* 
-LIKE VS DISLIKE BATTLE CODE - PRESERVED FOR FUTURE USE
-type FloatingEmoji = {
-  id: number;
-  x: number;
-  y: number;
-  emoji: string;
-  animatedY: Animated.Value;
-  animatedX: Animated.Value;
-  opacity: Animated.Value;
-};
-*/
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function TurnoverOverlay({ event }: EventComponentProps) {
-  // Split-screen voting state (like ControversialCallOverlay)
+export default function ControversialCallOverlay({ event }: EventComponentProps) {
   const [thumbsUpCount, setThumbsUpCount] = useState(0);
   const [thumbsDownCount, setThumbsDownCount] = useState(0);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
@@ -27,22 +15,10 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
   const thumbsDownScale = useRef(new Animated.Value(1)).current;
   const liveDotOpacity = useRef(new Animated.Value(1)).current;
 
-  // Get turnover details from payload
-  const turnoverType = event.payload?.turnoverType || 'INTERCEPTION';
-  const team = event.payload?.team || 'Defense';
-
-  const getTurnoverMessage = () => {
-    switch (turnoverType) {
-      case 'INTERCEPTION':
-        return 'INTERCEPTION!';
-      case 'FUMBLE':
-        return 'FUMBLE RECOVERY!';
-      case 'TURNOVER_ON_DOWNS':
-        return 'TURNOVER ON DOWNS!';
-      default:
-        return 'TURNOVER!';
-    }
-  };
+  // Get call details from payload
+  const callType = event.payload?.callType || 'PENALTY';
+  const callDescription = event.payload?.callDescription || 'Unnecessary Roughness';
+  const team = event.payload?.team || 'Eagles';
 
   // Animate live dot
   useEffect(() => {
@@ -55,13 +31,13 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
     animateDot();
   }, []);
 
-  // Simulate other users voting - MUCH MORE ACTIVITY for turnover drama
+  // Simulate other users voting
   useEffect(() => {
     const simulateVotes = () => {
-      // Random chance to add votes from "other users" - much higher frequency
-      if (Math.random() < 0.9) { // 90% chance every interval (vs 70% in controversial call)
-        const isUpVote = Math.random() < 0.4; // Slightly favor dislikes for turnover drama
-        const voteCount = Math.floor(Math.random() * 8) + 2; // 2-9 votes (vs 1-3)
+      // Random chance to add votes from "other users"
+      if (Math.random() < 0.7) { // 70% chance every interval
+        const isUpVote = Math.random() < 0.5;
+        const voteCount = Math.floor(Math.random() * 3) + 1; // 1-3 votes
         
         if (isUpVote) {
           setThumbsUpCount(prev => prev + voteCount);
@@ -71,11 +47,11 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
       }
     };
 
-    // Start simulation after a short delay - faster interval
+    // Start simulation after a short delay
     const initialDelay = setTimeout(() => {
-      const interval = setInterval(simulateVotes, 800); // Every 0.8 seconds (vs 1.5s)
+      const interval = setInterval(simulateVotes, 1500); // Every 1.5 seconds
       return () => clearInterval(interval);
-    }, 500);
+    }, 1000);
 
     return () => {
       clearTimeout(initialDelay);
@@ -129,7 +105,7 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
     <View style={styles.container}>
       {/* Beautiful centered header */}
       <View style={styles.header}>
-        <Text style={styles.turnoverTitle}>WHAT A PLAY! 🏈</Text>
+        <Text style={styles.callTitle}>HOW DO YOU FEEL ABOUT THAT? 🤔</Text>
       </View>
 
       {/* Vote counts display */}
@@ -190,7 +166,7 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
             ]}
           >
             <Text style={styles.thumbsIcon}>👎</Text>
-            <Text style={styles.voteLabel}>BAD PLAY</Text>
+            <Text style={styles.voteLabel}>BAD CALL</Text>
             <Text style={styles.sideCount}>{thumbsDownCount}</Text>
           </Animated.View>
         </Pressable>
@@ -208,7 +184,7 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
             ]}
           >
             <Text style={styles.thumbsIcon}>👍</Text>
-            <Text style={styles.voteLabel}>GREAT PLAY</Text>
+            <Text style={styles.voteLabel}>GOOD CALL</Text>
             <Text style={styles.sideCount}>{thumbsUpCount}</Text>
           </Animated.View>
         </Pressable>
@@ -260,8 +236,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 25,
   },
-  turnoverTitle: {
-    color: '#FF4500',
+  callTitle: {
+    color: '#ff6b6b',
     fontSize: 28,
     fontWeight: '900',
     textAlign: 'center',
@@ -285,7 +261,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   vs: {
-    color: '#FF4500',
+    color: '#ff6b6b',
     fontSize: 20,
     fontWeight: '900',
   },
@@ -388,7 +364,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF4500',
+    backgroundColor: '#ff6b6b',
     marginRight: 8,
   },
   liveText: {

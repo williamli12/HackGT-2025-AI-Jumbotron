@@ -21,7 +21,16 @@ export default function DebugHUD({ mode, elapsedSec, clipLabel, nextEventAt, nex
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', bottom: 16, left: 16, right: 16, padding: 12, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12 },
-  line: { color: 'white', marginBottom: 4 },
+  wrap: { 
+    position: 'absolute', 
+    top: 16, 
+    right: 16, 
+    padding: 8, 
+    backgroundColor: 'rgba(0,0,0,0.7)', 
+    borderRadius: 8,
+    minWidth: 180,
+    zIndex: 1000,
+  },
+  line: { color: 'white', marginBottom: 2, fontSize: 12 },
   bold: { fontWeight: '700' },
 });

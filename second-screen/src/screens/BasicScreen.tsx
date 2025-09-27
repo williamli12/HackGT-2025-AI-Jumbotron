@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
 import { useTimer } from '../store/useTimer';
 import { getTeams } from '../services/api';
+import EventTestButtons from '../components/EventTestButtons';
 
 function mmss(ms: number) {
   const s = Math.floor(ms / 1000);
@@ -31,6 +32,7 @@ export default function BasicScreen() {
           }
         }} />
       </View>
+      <EventTestButtons />
     </View>
   );
 }

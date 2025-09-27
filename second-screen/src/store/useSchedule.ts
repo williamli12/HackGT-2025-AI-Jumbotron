@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { demoTimeline } from '../schedule/sampleTimeline';
+import { TimelineEvent, Clip } from '../types';
 
 export type Mode = 'BASIC' | 'EVENT';
 
@@ -19,9 +20,9 @@ function getNextEventAfter(elapsedSec: number) {
 
 type ScheduleState = {
   mode: Mode;
-  activeEvent: ReturnType<typeof getActiveEvent>;
-  currentClip: ReturnType<typeof getCurrentClip>;
-  nextEvent: ReturnType<typeof getNextEventAfter>;
+  activeEvent: TimelineEvent | null;
+  currentClip: Clip | null;
+  nextEvent: TimelineEvent | null;
   compute: (elapsedSec: number) => void;
 };
 
