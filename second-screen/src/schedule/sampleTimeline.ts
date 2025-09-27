@@ -10,7 +10,17 @@ export const demoTimeline: Timeline = {
   events: [
     { id: 'ev-td',     kind: 'TOUCHDOWN', at: 10, durationSec: 5 },
     { id: 'ev-flag',   kind: 'PENALTY',   at: 25, durationSec: 4 },
-    { id: 'ev-turnover', kind: 'TURNOVER', at: 38, durationSec: 5 },
+    { 
+      id: 'ev-turnover', 
+      kind: 'TURNOVER', 
+      at: 38, 
+      durationSec: 6,
+      payload: {
+        turnoverType: 'INTERCEPTION',
+        team: 'Eagles Defense',
+        player: 'Darius Slay'
+      }
+    },
     { 
       id: 'ev-celebration', 
       kind: 'CELEBRATION', 

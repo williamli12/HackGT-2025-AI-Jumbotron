@@ -1,12 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import type { EventComponentProps } from './registry';
 
+type FloatingHeart = {
+  id: number;
+  x: number;
+  y: number;
+  animatedY: Animated.Value;
+  animatedX: Animated.Value;
+  opacity: Animated.Value;
+};
+
 export default function CelebrationOverlay({ event }: EventComponentProps) {
   const [clapCount, setClapCount] = useState(0);
-  const [showClapAnimation, setShowClapAnimation] = useState(false);
+  const [tapHearts, setTapHearts] = useState<FloatingHeart[]>([]);
   const [animatedValue] = useState(new Animated.Value(1));
+  
+  // Text animation values for growing text effect
+  const textScale = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(1)).current;
 
   // Get celebration message based on event payload or default to touchdown
   const celebrationType = event.payload?.celebrationType || 'TOUCHDOWN';
@@ -28,14 +41,106 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     }
   };
 
-  const handleTap = () => {
-    setClapCount(prev => prev + 1);
-    setShowClapAnimation(true);
+  // Start continuous pulsing animation
+  useEffect(() => {
+    // Continuous subtle pulse
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseOpacity, {
+          toValue: 0.8,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseOpacity, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    
+    pulseAnimation.start();
+    
+    return () => {
+      pulseAnimation.stop();
+    };
+  }, [pulseOpacity]);
+
+  // Gradually grow text based on tap count
+  useEffect(() => {
+    // Calculate target scale based on clap count
+    // Starts at 1.0, grows to 1.3 (130%) at 25+ taps
+    const targetScale = Math.min(1.0 + (clapCount * 0.012), 1.3);
+    
+    // Smooth transition to new scale
+    Animated.spring(textScale, {
+      toValue: targetScale,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+  }, [clapCount, textScale]);
+
+  const addHeartAtPosition = (x: number, y: number) => {
+    // Increment counter
+    setClapCount(current => current + 1);
+    
+    // Create animated values for floating effect
+    const animatedY = new Animated.Value(0);
+    const animatedX = new Animated.Value(0);
+    const opacity = new Animated.Value(1);
+    
+    // Random horizontal drift (-30 to +30 pixels)
+    const randomDrift = (Math.random() - 0.5) * 60;
+    
+    const newHeart: FloatingHeart = { 
+      id: Date.now() + Math.random(),
+      x: x, 
+      y: y,
+      animatedY,
+      animatedX,
+      opacity
+    };
+    
+    // Add heart emoji
+    setTapHearts(current => [...current, newHeart]);
+    
+    // Start floating animation
+    Animated.parallel([
+      Animated.timing(animatedY, {
+        toValue: -140,
+        duration: 1800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedX, {
+        toValue: randomDrift,
+        duration: 1800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 1800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    // Remove heart after animation
+    setTimeout(() => {
+      setTapHearts(current => current.filter(heart => heart.id !== newHeart.id));
+    }, 1800);
+  };
+
+  const handleTap = (event: any) => {
+    // Use pageX/pageY for absolute screen coordinates, fallback to locationX/locationY
+    const x = event.nativeEvent.pageX || event.nativeEvent.locationX || 0;
+    const y = event.nativeEvent.pageY || event.nativeEvent.locationY || 0;
+    
+    addHeartAtPosition(x, y);
     
     // Animate the screen pulse
     Animated.sequence([
       Animated.timing(animatedValue, {
-        toValue: 1.1,
+        toValue: 1.05,
         duration: 100,
         useNativeDriver: true,
       }),
@@ -45,9 +150,6 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Hide clap animation after a short delay
-    setTimeout(() => setShowClapAnimation(false), 500);
   };
 
   // Generate enthusiasm level based on clap count
@@ -75,25 +177,57 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
           />
         )}
 
-        {/* Main celebration message */}
-        <Text style={styles.mainMessage}>{getMessage()}</Text>
+        {/* Main celebration message with scaling */}
+        <Animated.Text 
+          style={[
+            styles.mainMessage,
+            {
+              transform: [{ scale: textScale }],
+              opacity: pulseOpacity
+            }
+          ]}
+        >
+          {getMessage()}
+        </Animated.Text>
 
         {/* Clap counter and encouragement */}
         <View style={styles.clapSection}>
-          <Text style={styles.clapPrompt}>👏 TAP TO CELEBRATE! 👏</Text>
-          <Text style={styles.clapCounter}>{clapCount} CLAPS</Text>
+          <Animated.Text 
+            style={[
+              styles.clapPrompt,
+              {
+                opacity: pulseOpacity
+              }
+            ]}
+          >
+            ❤️ TAP TO SHOW LOVE! ❤️
+          </Animated.Text>
+          <Text style={styles.clapCounter}>{clapCount} HEARTS</Text>
           <Text style={[styles.enthusiasmLevel, { color: enthusiasm.color }]}>
             {enthusiasm.level}
           </Text>
         </View>
 
-        {/* Animated clap feedback */}
-        {showClapAnimation && (
-          <View style={styles.clapAnimation}>
-            <Text style={styles.clapEmoji}>👏</Text>
-            <Text style={styles.clapText}>+1</Text>
-          </View>
-        )}
+        {/* Floating heart emojis */}
+        {tapHearts.map(heart => (
+          <Animated.Text
+            key={heart.id}
+            style={[
+              styles.floatingHeart,
+              {
+                left: heart.x - 25,
+                top: heart.y - 25,
+                transform: [
+                  { translateY: heart.animatedY },
+                  { translateX: heart.animatedX }
+                ],
+                opacity: heart.opacity
+              }
+            ]}
+          >
+            ❤️
+          </Animated.Text>
+        ))}
 
         {/* Progress indicator */}
         <View style={styles.progressContainer}>
@@ -240,5 +374,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     paddingHorizontal: 20,
+  },
+  floatingHeart: {
+    position: 'absolute',
+    fontSize: 40,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    zIndex: 999,
   },
 });
