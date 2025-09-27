@@ -42,6 +42,44 @@ const EVENT_TESTS = [
       team: 'Cowboys',
       gameImpact: 'First down at the 5-yard line'
     }
+  },
+  {
+    kind: 'MVP_VOTE',
+    label: 'MVP Vote',
+    payload: {
+      players: [
+        { name: 'J. Daniels', position: 'QB', stats: '285 YDS, 3 TD' },
+        { name: 'M. Johnson', position: 'RB', stats: '142 YDS, 2 TD' },
+        { name: 'K. Williams', position: 'WR', stats: '8 REC, 127 YDS, 1 TD' }
+      ]
+    }
+  },
+  {
+    kind: 'TWO_POINT_KICK_POLL',
+    label: '2pt vs Kick',
+    payload: {
+      situation: '4th & Goal - Down by 5',
+      timeRemaining: '2:45',
+      quarter: 4
+    }
+  },
+  {
+    kind: 'STATS_COMPARISON',
+    label: 'Stats Dashboard',
+    payload: {
+      gameStats: {
+        totalYards: 387,
+        passingYards: 285,
+        rushingYards: 102,
+        turnovers: 1
+      },
+      baselineStats: {
+        totalYards: 320,
+        passingYards: 240,
+        rushingYards: 80,
+        turnovers: 2
+      }
+    }
   }
 ];
 
