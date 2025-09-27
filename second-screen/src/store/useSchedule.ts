@@ -1,19 +1,19 @@
 import { create } from 'zustand';
-import { demoTimeline } from '../schedule/sampleTimeline';
+import { newGameTimeline } from '../schedule/newGameTimeline';
 import { TimelineEvent, Clip } from '../types';
 
 export type Mode = 'BASIC' | 'EVENT';
 
 function getActiveEvent(elapsedSec: number) {
-  return demoTimeline.events.find(ev => elapsedSec >= ev.at && elapsedSec < ev.at + ev.durationSec) ?? null;
+  return newGameTimeline.events.find(ev => elapsedSec >= ev.at && elapsedSec < ev.at + ev.durationSec) ?? null;
 }
 
 function getCurrentClip(elapsedSec: number) {
-  return demoTimeline.clips.find(c => elapsedSec >= c.startSec && elapsedSec < c.endSec) ?? null;
+  return newGameTimeline.clips.find(c => elapsedSec >= c.startSec && elapsedSec < c.endSec) ?? null;
 }
 
 function getNextEventAfter(elapsedSec: number) {
-  const future = demoTimeline.events.filter(ev => ev.at > elapsedSec);
+  const future = newGameTimeline.events.filter(ev => ev.at > elapsedSec);
   future.sort((a,b) => a.at - b.at);
   return future[0] ?? null;
 }

@@ -35,9 +35,9 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
   useEffect(() => {
     const simulateVotes = () => {
       // Random chance to add votes from "other users"
-      if (Math.random() < 0.7) { // 70% chance every interval
+      if (Math.random() < 0.95) { // 95% chance every interval (increased from 70%)
         const isUpVote = Math.random() < 0.5;
-        const voteCount = Math.floor(Math.random() * 3) + 1; // 1-3 votes
+        const voteCount = Math.floor(Math.random() * 8) + 3; // 3-10 votes (increased from 1-3)
         
         if (isUpVote) {
           setThumbsUpCount(prev => prev + voteCount);
@@ -49,9 +49,9 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
 
     // Start simulation after a short delay
     const initialDelay = setTimeout(() => {
-      const interval = setInterval(simulateVotes, 1500); // Every 1.5 seconds
+      const interval = setInterval(simulateVotes, 400); // Every 0.4 seconds (increased from 1.5s)
       return () => clearInterval(interval);
-    }, 1000);
+    }, 200); // Reduced initial delay from 1000ms to 200ms
 
     return () => {
       clearTimeout(initialDelay);
