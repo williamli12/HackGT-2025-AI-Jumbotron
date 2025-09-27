@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import type { EventComponentProps } from './registry';
 
-type FloatingHeart = {
+type FloatingEmoji = {
   id: number;
+  symbol: string;
   x: number;
   y: number;
   animatedY: Animated.Value;
@@ -11,8 +12,10 @@ type FloatingHeart = {
   opacity: Animated.Value;
 };
 
+const MAX_CONCURRENT_EMOJIS = 30;
+
 export default function CelebrationOverlay({ event }: EventComponentProps) {
-  const [tapEmojis, setTapEmojis] = useState<FloatingHeart[]>([]);
+  const [tapEmojis, setTapEmojis] = useState<FloatingEmoji[]>([]);
   const [tapCount, setTapCount] = useState(0);
   const pressableRef = useRef<View>(null);
   
@@ -59,41 +62,60 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     // Random horizontal drift (-20 to +20 pixels)
     const randomDrift = (Math.random() - 0.5) * 40;
     
-    const newEmoji: FloatingHeart = { 
+    // Create two emoji entries: heart and fire
+    const heartEmoji: FloatingEmoji = {
       id: Date.now() + Math.random(),
-      x: x, 
+      symbol: '❤️',
+      x: x,
       y: y,
-      animatedY,
-      animatedX,
-      opacity
+      animatedY: new Animated.Value(0),
+      animatedX: new Animated.Value(0),
+      opacity: new Animated.Value(1),
     };
-    
-    // Add heart emoji
-    setTapEmojis(current => [...current, newEmoji]);
-    
-    // Start floating animation
-    Animated.parallel([
-      Animated.timing(animatedY, {
-        toValue: -120,
-        duration: 1500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(animatedX, {
-        toValue: randomDrift,
-        duration: 1500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 1500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    
-    // Remove emoji after animation
-    setTimeout(() => {
-      setTapEmojis(current => current.filter(emoji => emoji.id !== newEmoji.id));
-    }, 1500);
+
+    const fireEmoji: FloatingEmoji = {
+      id: Date.now() + Math.random() + 1,
+      symbol: '🔥',
+      x: x + 10, // slight offset so they don't entirely overlap
+      y: y,
+      animatedY: new Animated.Value(0),
+      animatedX: new Animated.Value(0),
+      opacity: new Animated.Value(1),
+    };
+
+    // Add both emojis, but cap total count to avoid buildup
+    setTapEmojis(current => {
+      const combined = [...current, heartEmoji, fireEmoji];
+      if (combined.length <= MAX_CONCURRENT_EMOJIS) return combined;
+      // keep the most recent emojis
+      return combined.slice(combined.length - MAX_CONCURRENT_EMOJIS);
+    });
+
+    // Start floating animations for each emoji separately
+    [heartEmoji, fireEmoji].forEach((e) => {
+      const drift = (Math.random() - 0.5) * 40;
+      Animated.parallel([
+        Animated.timing(e.animatedY, {
+          toValue: -120,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(e.animatedX, {
+          toValue: drift,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(e.opacity, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      // Remove after animation
+      setTimeout(() => {
+        setTapEmojis(current => current.filter(emoji => emoji.id !== e.id));
+      }, 1500);
+    });
   };
 
   // Gradually grow text based on tap count - cumulative effect
@@ -143,8 +165,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       {/* Tap counter - replaces TapOverlay */}
       <Text style={styles.tapCounter}>👏 {tapCount}</Text>
       
-      {/* Floating heart emojis */}
-      {tapEmojis.map(emoji => (
+      {/* Floating emojis (heart + fire) */}
+      {tapEmojis.map((emoji: FloatingEmoji) => (
         <Animated.Text
           key={emoji.id}
           style={[
@@ -160,7 +182,7 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
             }
           ]}
         >
-          ❤️
+          {emoji.symbol}
         </Animated.Text>
       ))}
     </Pressable>
