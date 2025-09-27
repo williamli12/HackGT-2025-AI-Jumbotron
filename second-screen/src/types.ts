@@ -1,6 +1,6 @@
 export type TimelineEvent = {
   id: string;
-  kind: 'TOUCHDOWN' | 'PENALTY' | 'TURNOVER' | 'GENERIC';
+  kind: 'TOUCHDOWN' | 'PENALTY' | 'TURNOVER' | 'GENERIC' | 'TAP_FOR_LIKES';
   at: number;          // absolute seconds from start of the stitched clips
   durationSec: number; // how long the event overlay should remain visible
   payload?: Record<string, any>;

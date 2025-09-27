@@ -6,7 +6,8 @@ export const demoTimeline: Timeline = {
     { id: 'clip-2', startSec: 20, endSec: 45, label: 'Q1 Mid Drive' },
   ],
   events: [
-    { id: 'ev-td',     kind: 'TOUCHDOWN', at: 10, durationSec: 5 },
+    { id: 'ev-tap',    kind: 'TAP_FOR_LIKES', at: 10, durationSec: 7 },
+    { id: 'ev-td',     kind: 'TOUCHDOWN', at: 20, durationSec: 5 },
     { id: 'ev-flag',   kind: 'PENALTY',   at: 25, durationSec: 4 },
     { id: 'ev-turnover', kind: 'TURNOVER', at: 38, durationSec: 5 },
   ],
