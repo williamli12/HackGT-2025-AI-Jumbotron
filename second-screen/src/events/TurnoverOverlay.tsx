@@ -127,13 +127,9 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
 
   return (
     <View style={styles.container}>
-      {/* Header with turnover info */}
+      {/* Beautiful centered header */}
       <View style={styles.header}>
-        <Text style={styles.turnoverTitle}>{getTurnoverMessage()}</Text>
-        <Text style={styles.teamInfo}>{team} creates the turnover!</Text>
-        <Text style={styles.votePrompt}>
-          Was this a good defensive play?
-        </Text>
+        <Text style={styles.turnoverTitle}>WHAT A PLAY! 🏈</Text>
       </View>
 
       {/* Vote counts display */}
@@ -260,31 +256,21 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 25,
   },
   turnoverTitle: {
     color: '#FF4500',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
-    marginBottom: 8,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
-  teamInfo: {
-    color: '#ffd93d',
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  votePrompt: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
+    textShadowRadius: 6,
+    lineHeight: 34,
   },
   countsContainer: {
     flexDirection: 'row',

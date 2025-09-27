@@ -103,16 +103,9 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
 
   return (
     <View style={styles.container}>
-      {/* Header with call info */}
+      {/* Beautiful centered header */}
       <View style={styles.header}>
-        <Text style={styles.callTitle}>CONTROVERSIAL CALL!</Text>
-        <Text style={styles.callDescription}>
-          {callType}: {callDescription}
-        </Text>
-        <Text style={styles.teamInfo}>Called against {team}</Text>
-        <Text style={styles.votePrompt}>
-          What do you think? Vote now!
-        </Text>
+        <Text style={styles.callTitle}>HOW DO YOU FEEL ABOUT THAT? 🤔</Text>
       </View>
 
       {/* Vote counts display */}
@@ -239,38 +232,21 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 25,
   },
   callTitle: {
     color: '#ff6b6b',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
-    marginBottom: 8,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
-  callDescription: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  teamInfo: {
-    color: '#ffd93d',
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  votePrompt: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
+    textShadowRadius: 6,
+    lineHeight: 34,
   },
   countsContainer: {
     flexDirection: 'row',

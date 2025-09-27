@@ -125,28 +125,20 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
 
   return (
     <Pressable ref={pressableRef} style={styles.tapForLikesRoot} onPress={handleTapForLikes}>
-      <Animated.Text 
-        style={[
-          styles.tapMessageTop,
-          {
-            transform: [{ scale: textScale }],
-            opacity: pulseOpacity
-          }
-        ]}
-      >
-        TAP ANYWHERE TO
-      </Animated.Text>
-      <Animated.Text 
-        style={[
-          styles.tapMessageBottom,
-          {
-            transform: [{ scale: textScale }],
-            opacity: pulseOpacity
-          }
-        ]}
-      >
-        SHOW YOUR SUPPORT!
-      </Animated.Text>
+      {/* Beautiful centered text */}
+      <View style={styles.centerContent}>
+        <Animated.Text 
+          style={[
+            styles.tapMessage,
+            {
+              transform: [{ scale: textScale }],
+              opacity: pulseOpacity
+            }
+          ]}
+        >
+          TAP TO GET HYPE! 🔥
+        </Animated.Text>
+      </View>
       
       {/* Tap counter - replaces TapOverlay */}
       <Text style={styles.tapCounter}>👏 {tapCount}</Text>
@@ -179,25 +171,19 @@ const styles = StyleSheet.create({
   // TAP_FOR_LIKES specific styles
   tapForLikesRoot: { 
     flex: 1, 
-    backgroundColor: '#10182b', 
-    alignItems: 'center', 
-    justifyContent: 'center' 
+    backgroundColor: '#10182b',
   },
-  tapMessageTop: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: '900',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 3,
-    textShadowColor: 'rgba(255, 105, 180, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 15,
-    marginBottom: 15,
+  centerContent: {
+    position: 'absolute',
+    top: '40%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tapMessageBottom: {
+  tapMessage: {
     color: '#FF1493',
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: '900',
     textAlign: 'center',
     textTransform: 'uppercase',
@@ -205,6 +191,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(255, 255, 255, 0.9)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
+    lineHeight: 50,
   },
   floatingHeart: {
     position: 'absolute',
