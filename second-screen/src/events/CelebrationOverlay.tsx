@@ -20,6 +20,7 @@ const MAX_CONCURRENT_EMOJIS = 30;
 export default function CelebrationOverlay({ event }: EventComponentProps) {
   const [tapEmojis, setTapEmojis] = useState<FloatingEmoji[]>([]);
   const [tapCount, setTapCount] = useState(0);
+  const idleTimeoutRef = useRef<number | null>(null);
   const pressableRef = useRef<View>(null);
   
   // Text animation values - using same Animated API as hearts for consistency
@@ -169,6 +170,18 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     console.log('Tap coordinates:', x, y);
     
     addHeartAtPosition(x, y);
+    // Reset idle timeout so decay occurs after user stops tapping
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current as unknown as number);
+    }
+    idleTimeoutRef.current = window.setTimeout(() => {
+      Animated.timing(textScale, {
+        toValue: 1.0,
+        duration: 800,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
+    }, 3000);
   };
 
   return (
