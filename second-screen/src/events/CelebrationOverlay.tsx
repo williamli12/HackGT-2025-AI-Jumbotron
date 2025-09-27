@@ -69,10 +69,12 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     // Random horizontal drift (-20 to +20 pixels)
     const randomDrift = (Math.random() - 0.5) * 40;
     
-    // Create two emoji entries: heart and fire
-    const heartEmoji: FloatingEmoji = {
+    // Decide randomly whether to spawn a heart or a fire emoji
+    const chosenSymbol = Math.random() < 0.5 ? '❤️' : '🔥';
+
+    const newEmoji: FloatingEmoji = {
       id: Date.now() + Math.random(),
-      symbol: '❤️',
+      symbol: chosenSymbol,
       x: x,
       y: y,
       animatedY: new Animated.Value(0),
@@ -82,28 +84,17 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       opacity: new Animated.Value(1),
     };
 
-    const fireEmoji: FloatingEmoji = {
-      id: Date.now() + Math.random() + 1,
-      symbol: '🔥',
-      x: x + 10, // slight offset so they don't entirely overlap
-      y: y,
-      animatedY: new Animated.Value(0),
-      animatedX: new Animated.Value(0),
-      animatedScale: new Animated.Value(0.8),
-      animatedRotate: new Animated.Value(0),
-      opacity: new Animated.Value(1),
-    };
-
-    // Add both emojis, but cap total count to avoid buildup
+    // Add the new emoji, but cap total count to avoid buildup
     setTapEmojis(current => {
-      const combined = [...current, heartEmoji, fireEmoji];
+      const combined = [...current, newEmoji];
       if (combined.length <= MAX_CONCURRENT_EMOJIS) return combined;
       // keep the most recent emojis
       return combined.slice(combined.length - MAX_CONCURRENT_EMOJIS);
     });
 
-    // Start floating animations for each emoji separately
-    [heartEmoji, fireEmoji].forEach((e) => {
+    // Start floating animation for the emoji
+    {
+      const e = newEmoji;
       const drift = (Math.random() - 0.5) * 40;
       Animated.parallel([
         Animated.timing(e.animatedY, {
@@ -136,7 +127,7 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       setTimeout(() => {
         setTapEmojis(current => current.filter(emoji => emoji.id !== e.id));
       }, 1600);
-    });
+    }
 
     // Pop the central text briefly
     Animated.sequence([
