@@ -28,6 +28,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
   const popScale = useRef(new Animated.Value(1)).current; // small pop on tap
   const confettiRef = useRef<any>(null);
 
+  
+
   // Start continuous pulsing animation
   useEffect(() => {
     // Continuous subtle pulse
