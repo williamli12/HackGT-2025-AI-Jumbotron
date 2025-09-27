@@ -1,0 +1,478 @@
+You are an expert React Native engineer building a minimal Expo app that simulates a “secondary jumbotron” for live sports. Create the following project from scratch with TypeScript, React Navigation, Zustand, and a small confetti/tap overlay. Keep everything simple, production-clean, and hackathon-ready.
+
+## 0) New project + dependencies
+- Initialize: `npx create-expo-app second-screen --template`
+- Use TypeScript.
+- Install: 
+  - `@react-navigation/native @react-navigation/native-stack`
+  - `react-native-safe-area-context react-native-screens`
+  - `zustand`
+  - `expo-linear-gradient`
+  - `react-native-gesture-handler react-native-reanimated`
+  - `react-native-confetti-cannon`
+- Ensure `react-native-gesture-handler` and `react-native-reanimated` are correctly configured for Expo (add Reanimated plugin in babel if needed).
+
+## 1) File structure
+Create these files with content:
+
+/app.json
+/tsconfig.json  (strict enough, base Expo defaults OK)
+/babel.config.js (include reanimated plugin at the bottom of the plugins array)
+/src/AppNavigator.tsx
+/src/store/useTimer.ts
+/src/store/useSchedule.ts
+/src/schedule/sampleTimeline.ts
+/src/services/time.ts
+/src/services/api.ts
+/src/screens/BasicScreen.tsx
+/src/screens/EventScreen.tsx
+/src/components/DebugHUD.tsx
+/src/components/TapOverlay.tsx
+/App.tsx
+
+## 2) Timeline model
+- A timeline is a list of “events” on a single absolute clock (seconds). Example shape:
+
+```ts
+export type TimelineEvent = {
+  id: string;
+  kind: 'TOUCHDOWN' | 'PENALTY' | 'TURNOVER' | 'GENERIC';
+  at: number;          // absolute seconds from start of the stitched clips
+  durationSec: number; // how long the event overlay should remain visible
+  payload?: Record<string, any>;
+};
+
+export type Clip = {
+  id: string;
+  startSec: number;    // absolute start in the global timeline
+  endSec: number;      // absolute end in the global timeline
+  label?: string;
+};
+
+export type Timeline = {
+  clips: Clip[];
+  events: TimelineEvent[];
+};
+```
+
+- Create `/src/schedule/sampleTimeline.ts` with a tiny demo:
+  - Clips: [0–20], [20–45]
+  - Events: 
+    - TD at t=10 for 5s,
+    - back to BASIC (no event scheduled) until clip change at 20s,
+    - Flag at t=25 for 4s,
+    - Turnover at t=38 for 5s
+
+## 3) Timer service (Zustand)
+Create `/src/store/useTimer.ts`:
+- Holds state: `isRunning`, `startEpochMs`, `offsetMs`, `elapsedMs`
+- API:
+  - `start()` -> if paused, set `startEpochMs = now - offsetMs`, `isRunning = true`
+  - `pause()` -> set `offsetMs = elapsedMs`, `isRunning = false`
+  - `reset()` -> set all to zero, `isRunning = false`
+  - `seekTo(ms: number)` -> set `offsetMs = ms`, if running adjust `startEpochMs` accordingly
+- A `tick(nowMs: number)` method to recompute `elapsedMs` = `isRunning ? nowMs - startEpochMs : offsetMs`.
+
+Create `/src/services/time.ts`:
+- Export `nowMs()` uses `performance.now()` if available, else `Date.now()`.
+- Export a `startTicker(callback, fps=10)` that runs `setInterval` at ~100ms and calls the callback with `nowMs()`. Keep simple for hackathon.
+
+In `App.tsx`, start the ticker on mount:
+- On each tick, call `useTimer.getState().tick(nowMs)`.
+
+## 4) Schedule store + state machine
+Create `/src/store/useSchedule.ts`:
+- Import the demo `Timeline`.
+- Derived selectors:
+  - `currentClip(elapsedSec)`
+  - `activeEvent(elapsedSec)` -> return the event whose `[at, at+duration)` contains `elapsedSec`.
+- Also expose `nextEventAfter(elapsedSec)`.
+- Add a `mode` selector that maps `activeEvent ? 'EVENT' : 'BASIC'`.
+
+## 5) Screens and Navigator
+`/src/AppNavigator.tsx`:
+- Use a single stack navigator with two routes: `Basic` and `Event`.
+- But render switching **inside one host screen** to avoid unmount churn: a root component reads `mode` and conditionally renders `<BasicScreen/>` or `<EventScreen/>`.
+
+`/src/screens/BasicScreen.tsx`:
+- Show big game clock: `mm:ss` from elapsed.
+- Show fake score and a subtle “live pulse” (use LinearGradient for flair).
+- Add buttons: Start / Pause / Reset / +10s Seek.
+
+`/src/screens/EventScreen.tsx`:
+- Read `activeEvent` and display a bold overlay:
+  - If `kind==='TOUCHDOWN'`: “TOUCHDOWN!” + confetti.
+  - If `PENALTY'`: “FLAG ON THE PLAY!”
+  - If `TURNOVER'`: “TURNOVER!”
+  - Else: “BIG MOMENT!”
+- Include a compact score bar at top to keep context.
+
+`/src/components/DebugHUD.tsx`:
+- Bottom-floating card with:
+  - Raw `elapsedMs`, current clip label, next event time/kind
+  - A mode badge ‘BASIC’/‘EVENT’
+
+`/src/components/TapOverlay.tsx`:
+- Full-screen transparent `Pressable` that increments a local “cheer” counter; render big floating numbers briefly (simple RN Animated or just text that grows/fades).
+- Used only in EventScreen for now.
+
+## 6) Mode switching
+- In the root (Navigator host), subscribe to timer + schedule.
+- Compute `elapsedSec = Math.floor(elapsedMs/1000)`.
+- If `activeEvent(elapsedSec)` is non-null => render `EventScreen`.
+- Else render `BasicScreen`.
+- Do NOT use navigation pushes for every flip—just render conditionally.
+
+## 7) API hook placeholder
+Create `/src/services/api.ts`:
+- Export `getTeams()` that fetches `http://localhost:1339/v1/leagues/NFL/teams`.
+- Not used yet by default, but add a simple button in BasicScreen to fetch once and log count to console. Keep it behind a try/catch so the app still runs without the server.
+
+## 8) App.tsx
+- Wire providers (NavigationContainer).
+- Start ticker in a `useEffect`.
+- Provide safe area.
+
+## 9) Polish
+- TypeScript strict enough to catch shape errors.
+- Small, clean styles; responsive text; no platform-specific code required.
+
+## 10) Acceptance
+- Running `npx expo start`:
+  - On load, shows BASIC screen with 00:00 and Start button.
+  - After Start, time increases.
+  - At t=10s, UI flips to EVENT screen (TD) with confetti and tap overlay.
+  - At t=15s, returns to BASIC automatically.
+  - At t=20s, BASIC continues (new clip).
+  - At t=25s, EVENT (Flag) for 4s, then back to BASIC until t=38s EVENT (Turnover) for 5s.
+  - Debug HUD always shows mode, elapsed, next event.
+  - Buttons work: Pause/Resume/Reset/Seek+10s.
+
+## 11) Code stubs (ESSENTIAL parts)
+
+### /src/store/useTimer.ts
+```ts
+import {create} from 'zustand';
+
+type TimerState = {
+  isRunning: boolean;
+  startEpochMs: number;
+  offsetMs: number;
+  elapsedMs: number;
+  start: () => void;
+  pause: () => void;
+  reset: () => void;
+  seekTo: (ms: number) => void;
+  tick: (nowMs: number) => void;
+};
+
+export const useTimer = create<TimerState>((set, get) => ({
+  isRunning: false,
+  startEpochMs: 0,
+  offsetMs: 0,
+  elapsedMs: 0,
+  start: () => {
+    const {isRunning, offsetMs} = get();
+    if (isRunning) return;
+    const now = (global as any).performance?.now?.() ?? Date.now();
+    set({ isRunning: true, startEpochMs: now - offsetMs });
+  },
+  pause: () => {
+    const {isRunning, elapsedMs} = get();
+    if (!isRunning) return;
+    set({ isRunning: false, offsetMs: elapsedMs });
+  },
+  reset: () => set({ isRunning: false, startEpochMs: 0, offsetMs: 0, elapsedMs: 0 }),
+  seekTo: (ms) => {
+    const {isRunning} = get();
+    const now = (global as any).performance?.now?.() ?? Date.now();
+    set({
+      offsetMs: ms,
+      startEpochMs: isRunning ? now - ms : 0,
+      elapsedMs: ms,
+    });
+  },
+  tick: (nowMs) => {
+    const {isRunning, startEpochMs, offsetMs} = get();
+    if (!isRunning) return set({ elapsedMs: offsetMs });
+    set({ elapsedMs: Math.max(0, nowMs - startEpochMs) });
+  },
+}));
+```
+
+### /src/services/time.ts
+```ts
+export const nowMs = () => (global as any).performance?.now?.() ?? Date.now();
+
+export function startTicker(cb: (t: number)=>void, fps = 10) {
+  const interval = Math.max(1, Math.floor(1000 / fps));
+  const id = setInterval(() => cb(nowMs()), interval);
+  return () => clearInterval(id);
+}
+```
+
+### /src/schedule/sampleTimeline.ts
+```ts
+import { Timeline } from '../types';
+
+export const demoTimeline: Timeline = {
+  clips: [
+    { id: 'clip-1', startSec: 0, endSec: 20, label: 'Q1 Opening Drive' },
+    { id: 'clip-2', startSec: 20, endSec: 45, label: 'Q1 Mid Drive' },
+  ],
+  events: [
+    { id: 'ev-td',     kind: 'TOUCHDOWN', at: 10, durationSec: 5 },
+    { id: 'ev-flag',   kind: 'PENALTY',   at: 25, durationSec: 4 },
+    { id: 'ev-turnover', kind: 'TURNOVER', at: 38, durationSec: 5 },
+  ],
+};
+```
+
+### /src/store/useSchedule.ts
+```ts
+import { create } from 'zustand';
+import { demoTimeline } from '../schedule/sampleTimeline';
+
+export type Mode = 'BASIC' | 'EVENT';
+
+function getActiveEvent(elapsedSec: number) {
+  return demoTimeline.events.find(ev => elapsedSec >= ev.at && elapsedSec < ev.at + ev.durationSec) ?? null;
+}
+
+function getCurrentClip(elapsedSec: number) {
+  return demoTimeline.clips.find(c => elapsedSec >= c.startSec && elapsedSec < c.endSec) ?? null;
+}
+
+function getNextEventAfter(elapsedSec: number) {
+  const future = demoTimeline.events.filter(ev => ev.at > elapsedSec);
+  future.sort((a,b) => a.at - b.at);
+  return future[0] ?? null;
+}
+
+type ScheduleState = {
+  mode: Mode;
+  activeEvent: ReturnType<typeof getActiveEvent>;
+  currentClip: ReturnType<typeof getCurrentClip>;
+  nextEvent: ReturnType<typeof getNextEventAfter>;
+  compute: (elapsedSec: number) => void;
+};
+
+export const useSchedule = create<ScheduleState>((set) => ({
+  mode: 'BASIC',
+  activeEvent: null,
+  currentClip: null,
+  nextEvent: null,
+  compute: (elapsedSec) => {
+    const activeEvent = getActiveEvent(elapsedSec);
+    const currentClip = getCurrentClip(elapsedSec);
+    const nextEvent = getNextEventAfter(elapsedSec);
+    set({
+      activeEvent,
+      currentClip,
+      nextEvent,
+      mode: activeEvent ? 'EVENT' : 'BASIC',
+    });
+  },
+}));
+```
+
+### /src/services/api.ts
+```ts
+const BASE = 'http://localhost:1339';
+
+export async function getTeams() {
+  const res = await fetch(`${BASE}/v1/leagues/NFL/teams`);
+  if (!res.ok) throw new Error(`Teams fetch failed: ${res.status}`);
+  return res.json();
+}
+```
+
+### /src/components/DebugHUD.tsx
+```tsx
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+
+type Props = {
+  mode: string;
+  elapsedSec: number;
+  clipLabel?: string | null;
+  nextEventAt?: number | null;
+  nextEventKind?: string | null;
+};
+
+export default function DebugHUD({ mode, elapsedSec, clipLabel, nextEventAt, nextEventKind }: Props) {
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.line}>Mode: <Text style={styles.bold}>{mode}</Text></Text>
+      <Text style={styles.line}>Elapsed: {elapsedSec}s</Text>
+      <Text style={styles.line}>Clip: {clipLabel ?? '—'}</Text>
+      <Text style={styles.line}>Next: {nextEventAt != null ? `${nextEventAt}s (${nextEventKind})` : '—'}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { position: 'absolute', bottom: 16, left: 16, right: 16, padding: 12, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12 },
+  line: { color: 'white', marginBottom: 4 },
+  bold: { fontWeight: '700' },
+});
+```
+
+### /src/components/TapOverlay.tsx
+```tsx
+import React, { useState } from 'react';
+import { Pressable, Text, StyleSheet } from 'react-native';
+
+export default function TapOverlay() {
+  const [count, setCount] = useState(0);
+  return (
+    <Pressable style={styles.fill} onPress={() => setCount(c => c + 1)}>
+      <Text style={styles.counter}>👏 {count}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  fill: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  counter: { position: 'absolute', top: 16, right: 16, fontSize: 22, color: 'white', fontWeight: '800' },
+});
+```
+
+### /src/screens/BasicScreen.tsx
+```tsx
+import React from 'react';
+import { View, Text, StyleSheet, Button } from 'react-native';
+import { useTimer } from '../store/useTimer';
+import { getTeams } from '../services/api';
+
+function mmss(ms: number) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(rs).padStart(2,'0')}`;
+}
+
+export default function BasicScreen() {
+  const { elapsedMs, start, pause, reset, seekTo, isRunning } = useTimer();
+
+  return (
+    <View style={styles.root}>
+      <Text style={styles.title}>SECONDARY JUMBOTRON</Text>
+      <Text style={styles.clock}>{mmss(elapsedMs)}</Text>
+      <Text style={styles.score}>Home 7 — 0 Away</Text>
+      <View style={styles.row}>
+        <Button title={isRunning ? 'Pause' : 'Start'} onPress={isRunning ? pause : start} />
+        <Button title="Reset" onPress={reset} />
+        <Button title="+10s" onPress={() => seekTo(elapsedMs + 10000)} />
+        <Button title="Fetch Teams" onPress={async () => {
+          try {
+            const teams = await getTeams();
+            console.log('Teams length:', teams?.length);
+          } catch (e) {
+            console.warn('API not running:', String(e));
+          }
+        }} />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0d0f1a', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  title: { color: 'white', fontSize: 20, marginBottom: 8, opacity: 0.8 },
+  clock: { color: 'white', fontSize: 64, fontWeight: '800' },
+  score: { color: 'white', fontSize: 22, marginVertical: 8 },
+  row: { flexDirection:'row', gap: 8, marginTop: 12 },
+});
+```
+
+### /src/screens/EventScreen.tsx
+```tsx
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
+import TapOverlay from '../components/TapOverlay';
+
+export default function EventScreen({ kind = 'TOUCHDOWN' as 'TOUCHDOWN'|'PENALTY'|'TURNOVER'|'GENERIC' }) {
+  const message = kind === 'TOUCHDOWN' ? 'TOUCHDOWN!' :
+                  kind === 'PENALTY'   ? 'FLAG ON THE PLAY!' :
+                  kind === 'TURNOVER'  ? 'TURNOVER!' : 'BIG MOMENT!';
+
+  return (
+    <View style={styles.root}>
+      <Text style={styles.msg}>{message}</Text>
+      {kind === 'TOUCHDOWN' && <ConfettiCannon count={100} origin={{x: 0, y: 0}} fadeOut />}
+      <Text style={styles.sub}>Home 13 — 0 Away</Text>
+      <TapOverlay />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex:1, backgroundColor:'#10182b', alignItems:'center', justifyContent:'center' },
+  msg: { color:'white', fontSize:48, fontWeight:'900' },
+  sub: { color:'white', marginTop:8, fontSize:18, opacity:0.9 },
+});
+```
+
+### /src/AppNavigator.tsx (root host that flips views)
+```tsx
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import BasicScreen from './screens/BasicScreen';
+import EventScreen from './screens/EventScreen';
+import { useTimer } from './store/useTimer';
+import { useSchedule } from './store/useSchedule';
+import DebugHUD from './components/DebugHUD';
+
+export default function AppNavigator() {
+  const { elapsedMs } = useTimer();
+  const { mode, activeEvent, currentClip, nextEvent, compute } = useSchedule();
+
+  const elapsedSec = Math.floor(elapsedMs / 1000);
+
+  useEffect(() => {
+    compute(elapsedSec);
+  }, [elapsedSec]);
+
+  return (
+    <NavigationContainer>
+      {mode === 'EVENT'
+        ? <EventScreen kind={activeEvent?.kind ?? 'GENERIC'} />
+        : <BasicScreen />
+      }
+      <DebugHUD
+        mode={mode}
+        elapsedSec={elapsedSec}
+        clipLabel={currentClip?.label ?? null}
+        nextEventAt={nextEvent?.at ?? null}
+        nextEventKind={nextEvent?.kind ?? null}
+      />
+    </NavigationContainer>
+  );
+}
+```
+
+### /App.tsx
+```tsx
+import React, { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AppNavigator from './src/AppNavigator';
+import { startTicker } from './src/services/time';
+import { useTimer } from './src/store/useTimer';
+
+export default function App() {
+  useEffect(() => {
+    const stop = startTicker((t) => {
+      useTimer.getState().tick(t);
+    }, 10);
+    return stop;
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <AppNavigator />
+    </SafeAreaProvider>
+  );
+}
+```
