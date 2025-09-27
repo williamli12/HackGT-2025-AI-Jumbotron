@@ -71,7 +71,7 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     const randomDrift = (Math.random() - 0.5) * 40;
     
   // Decide randomly whether to spawn a heart (70%) or a fire emoji (30%)
-  const chosenSymbol = Math.random() < 0.7 ? '❤️' : '🔥';
+  const chosenSymbol = Math.random() < 0.7 ? '❤️' : '🏈';
 
     const newEmoji: FloatingEmoji = {
       id: Date.now() + Math.random(),
@@ -197,7 +197,7 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
               }
             ]}
           >
-            TAP TO GET HYPE! 🔥
+            TAP TO GET HYPE! 🏈
           </Animated.Text>
       </View>
       
