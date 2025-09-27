@@ -62,10 +62,10 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
   useEffect(() => {
     const totalVotes = thumbsUpCount + thumbsDownCount;
     if (totalVotes > 0) {
-      const upPercentage = (thumbsUpCount / totalVotes) * 100;
+      const downPercentage = (thumbsDownCount / totalVotes) * 100;
       
       Animated.spring(splitPosition, {
-        toValue: upPercentage,
+        toValue: downPercentage,
         useNativeDriver: false,
         tension: 100,
         friction: 8,
@@ -135,7 +135,7 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
             {
               width: splitPosition.interpolate({
                 inputRange: [0, 100],
-                outputRange: ['100%', '0%'],
+                outputRange: ['0%', '100%'],
                 extrapolate: 'clamp',
               }),
             }
@@ -146,9 +146,14 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
           style={[
             styles.thumbsUpBg,
             {
-              width: splitPosition.interpolate({
+              left: splitPosition.interpolate({
                 inputRange: [0, 100],
                 outputRange: ['0%', '100%'],
+                extrapolate: 'clamp',
+              }),
+              width: splitPosition.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['100%', '0%'],
                 extrapolate: 'clamp',
               }),
             }
@@ -298,7 +303,6 @@ const styles = StyleSheet.create({
   },
   thumbsUpBg: {
     position: 'absolute',
-    right: 0,
     top: 0,
     bottom: 0,
     backgroundColor: '#27ae60',

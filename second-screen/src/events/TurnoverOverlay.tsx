@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import type { EventComponentProps } from './registry';
 
+/* 
+LIKE VS DISLIKE BATTLE CODE - PRESERVED FOR FUTURE USE
 type FloatingEmoji = {
   id: number;
   x: number;
@@ -11,14 +13,19 @@ type FloatingEmoji = {
   animatedX: Animated.Value;
   opacity: Animated.Value;
 };
+*/
 
 export default function TurnoverOverlay({ event }: EventComponentProps) {
-  const [likeCount, setLikeCount] = useState(0);
-  const [dislikeCount, setDislikeCount] = useState(0);
-  const [battleEmojis, setBattleEmojis] = useState<FloatingEmoji[]>([]);
+  // Split-screen voting state (like ControversialCallOverlay)
+  const [thumbsUpCount, setThumbsUpCount] = useState(0);
+  const [thumbsDownCount, setThumbsDownCount] = useState(0);
+  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
   
-  // Animation values for the background split
-  const dislikeBgWidth = useRef(new Animated.Value(50)).current; // Start at 50% width
+  // Animated values for split screen
+  const splitPosition = useRef(new Animated.Value(50)).current; // Start at 50% (center)
+  const thumbsUpScale = useRef(new Animated.Value(1)).current;
+  const thumbsDownScale = useRef(new Animated.Value(1)).current;
+  const liveDotOpacity = useRef(new Animated.Value(1)).current;
 
   // Get turnover details from payload
   const turnoverType = event.payload?.turnoverType || 'INTERCEPTION';
@@ -37,163 +44,117 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
     }
   };
 
-  // Animate background split effect
+  // Animate live dot
   useEffect(() => {
-    const total = likeCount + dislikeCount;
-    if (total > 0) {
-      const dislikePercentage = Math.max(20, Math.min(80, (dislikeCount / total) * 100));
+    const animateDot = () => {
+      Animated.sequence([
+        Animated.timing(liveDotOpacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(liveDotOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ]).start(() => animateDot());
+    };
+    animateDot();
+  }, []);
+
+  // Simulate other users voting - MUCH MORE ACTIVITY for turnover drama
+  useEffect(() => {
+    const simulateVotes = () => {
+      // Random chance to add votes from "other users" - much higher frequency
+      if (Math.random() < 0.9) { // 90% chance every interval (vs 70% in controversial call)
+        const isUpVote = Math.random() < 0.4; // Slightly favor dislikes for turnover drama
+        const voteCount = Math.floor(Math.random() * 8) + 2; // 2-9 votes (vs 1-3)
+        
+        if (isUpVote) {
+          setThumbsUpCount(prev => prev + voteCount);
+        } else {
+          setThumbsDownCount(prev => prev + voteCount);
+        }
+      }
+    };
+
+    // Start simulation after a short delay - faster interval
+    const initialDelay = setTimeout(() => {
+      const interval = setInterval(simulateVotes, 800); // Every 0.8 seconds (vs 1.5s)
+      return () => clearInterval(interval);
+    }, 500);
+
+    return () => {
+      clearTimeout(initialDelay);
+    };
+  }, []);
+
+  // Update split animation when votes change
+  useEffect(() => {
+    const totalVotes = thumbsUpCount + thumbsDownCount;
+    if (totalVotes > 0) {
+      const downPercentage = (thumbsDownCount / totalVotes) * 100;
       
-      Animated.spring(dislikeBgWidth, {
-        toValue: dislikePercentage,
+      Animated.spring(splitPosition, {
+        toValue: downPercentage,
         useNativeDriver: false,
         tension: 100,
         friction: 8,
       }).start();
     }
-  }, [likeCount, dislikeCount, dislikeBgWidth]);
+  }, [thumbsUpCount, thumbsDownCount]);
 
-  const addBattleEmoji = useCallback((x: number, y: number, emoji: string, isDislike: boolean) => {
-    // Increment appropriate counter
-    if (isDislike) {
-      setDislikeCount(current => current + 1);
+  const handleVote = (voteType: 'up' | 'down') => {
+    // Prevent multiple votes from same user
+    if (userVote) return;
+
+    setUserVote(voteType);
+    
+    if (voteType === 'up') {
+      setThumbsUpCount(prev => prev + 1);
+      // Scale animation for thumbs up
+      Animated.sequence([
+        Animated.timing(thumbsUpScale, { toValue: 1.2, duration: 150, useNativeDriver: true }),
+        Animated.timing(thumbsUpScale, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
     } else {
-      setLikeCount(current => current + 1);
+      setThumbsDownCount(prev => prev + 1);
+      // Scale animation for thumbs down
+      Animated.sequence([
+        Animated.timing(thumbsDownScale, { toValue: 1.2, duration: 150, useNativeDriver: true }),
+        Animated.timing(thumbsDownScale, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
     }
-    
-    // Create animated values for floating effect
-    const animatedY = new Animated.Value(0);
-    const animatedX = new Animated.Value(0);
-    const opacity = new Animated.Value(1);
-    
-    // Random horizontal drift
-    const randomDrift = (Math.random() - 0.5) * 40;
-    
-    const newEmoji: FloatingEmoji = { 
-      id: Date.now() + Math.random(),
-      x: x, 
-      y: y,
-      emoji,
-      animatedY,
-      animatedX,
-      opacity
-    };
-    
-    // Add battle emoji
-    setBattleEmojis(current => [...current, newEmoji]);
-    
-    // Start floating animation
-    Animated.parallel([
-      Animated.timing(animatedY, {
-        toValue: -120,
-        duration: 1400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(animatedX, {
-        toValue: randomDrift,
-        duration: 1400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 1400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    
-    // Remove emoji after animation
-    setTimeout(() => {
-      setBattleEmojis(current => current.filter(emoji => emoji.id !== newEmoji.id));
-    }, 1400);
-  }, []);
-
-  // Simulate battle over time - dislikes slightly win for turnover drama
-  useEffect(() => {
-    const simulationIntervals: NodeJS.Timeout[] = [];
-    
-    const scheduleSimulation = () => {
-      // Likes schedule (moderate) - total: ~6 likes
-      const likeSchedule = [400, 1000, 1800, 2600, 3400, 4200];
-      
-      // Dislikes schedule (more frequent for turnover drama) - total: ~10 dislikes  
-      const dislikeSchedule = [200, 600, 1200, 1600, 2000, 2400, 3000, 3600, 4000, 4400];
-      
-      // Schedule likes
-      likeSchedule.forEach(delay => {
-        const timeout = setTimeout(() => {
-          // Random position on right side for likes
-          const x = Math.random() * 120 + 280; // Right side of screen
-          const y = Math.random() * 300 + 200;
-          addBattleEmoji(x, y, '👍', false);
-        }, delay);
-        simulationIntervals.push(timeout);
-      });
-      
-      // Schedule dislikes (more frequent for turnover negativity)
-      dislikeSchedule.forEach(delay => {
-        const timeout = setTimeout(() => {
-          // Random position on left side for dislikes
-          const x = Math.random() * 120 + 50; // Left side of screen
-          const y = Math.random() * 300 + 200;
-          addBattleEmoji(x, y, '👎', true);
-        }, delay);
-        simulationIntervals.push(timeout);
-      });
-    };
-    
-    // Start simulation after a brief delay
-    const startTimeout = setTimeout(scheduleSimulation, 300);
-    simulationIntervals.push(startTimeout);
-    
-    // Cleanup function
-    return () => {
-      simulationIntervals.forEach(interval => clearTimeout(interval));
-    };
-  }, [addBattleEmoji]);
-
-  const handleLikePress = (event: any) => {
-    const x = event.nativeEvent.pageX || event.nativeEvent.locationX || 0;
-    const y = event.nativeEvent.pageY || event.nativeEvent.locationY || 0;
-    addBattleEmoji(x, y, '👍', false);
   };
 
-  const handleDislikePress = (event: any) => {
-    const x = event.nativeEvent.pageX || event.nativeEvent.locationX || 0;
-    const y = event.nativeEvent.pageY || event.nativeEvent.locationY || 0;
-    addBattleEmoji(x, y, '👎', true);
-  };
-
-  const totalVotes = likeCount + dislikeCount;
-  const likePercentage = totalVotes > 0 ? Math.round((likeCount / totalVotes) * 100) : 50;
-  const dislikePercentage = 100 - likePercentage;
+  // Calculate percentages for display
+  const totalVotes = thumbsUpCount + thumbsDownCount;
+  const upPercentage = totalVotes > 0 ? Math.round((thumbsUpCount / totalVotes) * 100) : 50;
+  const downPercentage = 100 - upPercentage;
 
   return (
-    <View style={styles.battleRoot}>
+    <View style={styles.container}>
       {/* Header with turnover info */}
       <View style={styles.header}>
         <Text style={styles.turnoverTitle}>{getTurnoverMessage()}</Text>
         <Text style={styles.teamInfo}>{team} creates the turnover!</Text>
-        <Text style={styles.votePrompt}>How do you feel about this play?</Text>
+        <Text style={styles.votePrompt}>
+          Was this a good defensive play?
+        </Text>
       </View>
 
       {/* Vote counts display */}
       <View style={styles.countsContainer}>
         <Text style={styles.voteCount}>
-          👎 {dislikeCount} ({dislikePercentage}%)
+          👎 {thumbsDownCount} ({downPercentage}%)
         </Text>
         <Text style={styles.vs}>VS</Text>
         <Text style={styles.voteCount}>
-          👍 {likeCount} ({likePercentage}%)
+          👍 {thumbsUpCount} ({upPercentage}%)
         </Text>
       </View>
 
-      {/* Split screen battle area */}
+      {/* Split screen voting area */}
       <View style={styles.votingArea}>
         {/* Animated background split */}
         <Animated.View 
           style={[
-            styles.dislikeBg,
+            styles.thumbsDownBg,
             {
-              width: dislikeBgWidth.interpolate({
+              width: splitPosition.interpolate({
                 inputRange: [0, 100],
                 outputRange: ['0%', '100%'],
                 extrapolate: 'clamp',
@@ -204,9 +165,14 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
         
         <Animated.View 
           style={[
-            styles.likeBg,
+            styles.thumbsUpBg,
             {
-              width: dislikeBgWidth.interpolate({
+              left: splitPosition.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+                extrapolate: 'clamp',
+              }),
+              width: splitPosition.interpolate({
                 inputRange: [0, 100],
                 outputRange: ['100%', '0%'],
                 extrapolate: 'clamp',
@@ -215,28 +181,40 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
           ]} 
         />
 
-        {/* Dislike Side */}
+        {/* Thumbs Down Side */}
         <Pressable 
           style={[styles.voteSide, styles.leftSide]}
-          onPress={handleDislikePress}
+          onPress={() => handleVote('down')}
+          disabled={userVote !== null}
         >
-          <View style={styles.voteContent}>
-            <Text style={styles.battleEmoji}>👎</Text>
+          <Animated.View 
+            style={[
+              styles.voteContent,
+              { transform: [{ scale: thumbsDownScale }] }
+            ]}
+          >
+            <Text style={styles.thumbsIcon}>👎</Text>
             <Text style={styles.voteLabel}>BAD PLAY</Text>
-            <Text style={styles.sideCount}>{dislikeCount}</Text>
-          </View>
+            <Text style={styles.sideCount}>{thumbsDownCount}</Text>
+          </Animated.View>
         </Pressable>
 
-        {/* Like Side */}
+        {/* Thumbs Up Side */}
         <Pressable 
           style={[styles.voteSide, styles.rightSide]}
-          onPress={handleLikePress}
+          onPress={() => handleVote('up')}
+          disabled={userVote !== null}
         >
-          <View style={styles.voteContent}>
-            <Text style={styles.battleEmoji}>👍</Text>
+          <Animated.View 
+            style={[
+              styles.voteContent,
+              { transform: [{ scale: thumbsUpScale }] }
+            ]}
+          >
+            <Text style={styles.thumbsIcon}>👍</Text>
             <Text style={styles.voteLabel}>GREAT PLAY</Text>
-            <Text style={styles.sideCount}>{likeCount}</Text>
-          </View>
+            <Text style={styles.sideCount}>{thumbsUpCount}</Text>
+          </Animated.View>
         </Pressable>
 
         {/* Center divider line */}
@@ -244,7 +222,7 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
           style={[
             styles.dividerLine,
             {
-              left: dislikeBgWidth.interpolate({
+              left: splitPosition.interpolate({
                 inputRange: [0, 100],
                 outputRange: ['0%', '100%'],
                 extrapolate: 'clamp',
@@ -254,50 +232,41 @@ export default function TurnoverOverlay({ event }: EventComponentProps) {
         />
       </View>
 
-      {/* Floating battle emojis */}
-      {battleEmojis.map(emoji => (
-        <Animated.Text
-          key={emoji.id}
-          style={[
-            styles.floatingBattleEmoji,
-            {
-              left: emoji.x - 20,
-              top: emoji.y - 20,
-              transform: [
-                { translateY: emoji.animatedY },
-                { translateX: emoji.animatedX }
-              ],
-              opacity: emoji.opacity
-            }
-          ]}
-        >
-          {emoji.emoji}
-        </Animated.Text>
-      ))}
+      {/* User feedback */}
+      {userVote && (
+        <View style={styles.userFeedback}>
+          <Text style={styles.thankYou}>
+            Thanks for voting! {userVote === 'up' ? '👍' : '👎'}
+          </Text>
+          <Text style={styles.liveVoting}>
+            Live voting continues...
+          </Text>
+        </View>
+      )}
 
-      {/* Live voting indicator */}
+      {/* Live indicator */}
       <View style={styles.liveIndicator}>
-        <View style={styles.liveDot} />
-        <Text style={styles.liveText}>LIVE REACTIONS • {totalVotes} total</Text>
+        <Animated.View style={[styles.liveDot, { opacity: liveDotOpacity }]} />
+        <Text style={styles.liveText}>LIVE VOTING • {totalVotes} total votes</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  battleRoot: {
+  container: {
     flex: 1,
     backgroundColor: '#1a1a2e',
   },
   header: {
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingBottom: 20,
   },
   turnoverTitle: {
     color: '#FF4500',
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '900',
     marginBottom: 8,
     textAlign: 'center',
@@ -307,14 +276,13 @@ const styles = StyleSheet.create({
   },
   teamInfo: {
     color: '#ffd93d',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 12,
   },
   votePrompt: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -323,16 +291,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 40,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   voteCount: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   vs: {
     color: '#FF4500',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
   },
   votingArea: {
@@ -340,16 +308,15 @@ const styles = StyleSheet.create({
     position: 'relative',
     flexDirection: 'row',
   },
-  dislikeBg: {
+  thumbsDownBg: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     backgroundColor: '#e74c3c',
   },
-  likeBg: {
+  thumbsUpBg: {
     position: 'absolute',
-    right: 0,
     top: 0,
     bottom: 0,
     backgroundColor: '#27ae60',
@@ -371,18 +338,18 @@ const styles = StyleSheet.create({
   voteContent: {
     alignItems: 'center',
   },
-  battleEmoji: {
-    fontSize: 100,
-    marginBottom: 15,
+  thumbsIcon: {
+    fontSize: 80,
+    marginBottom: 10,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
   },
   voteLabel: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 1, height: 1 },
@@ -390,7 +357,7 @@ const styles = StyleSheet.create({
   },
   sideCount: {
     color: 'white',
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '900',
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 2, height: 2 },
@@ -408,16 +375,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 4,
   },
-  floatingBattleEmoji: {
-    position: 'absolute',
-    fontSize: 36,
-    zIndex: 3,
+  userFeedback: {
+    alignItems: 'center',
+    paddingVertical: 15,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  thankYou: {
+    color: '#4ecdc4',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  liveVoting: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '500',
   },
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   liveDot: {
