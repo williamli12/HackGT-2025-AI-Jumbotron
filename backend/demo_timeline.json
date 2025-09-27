@@ -1,0 +1,94 @@
+{
+  "events": [
+    {
+      "t": "2025-09-27T19:30:00Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "11:45",
+      "home": {"score": 0, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 0, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SEGMENT_START", "team": "PHI", "label": "Game Start"}
+    },
+    {
+      "t": "2025-09-27T19:30:05Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "11:30",
+      "home": {"score": 3, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 0, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "PHI", "value": 3}
+    },
+    {
+      "t": "2025-09-27T19:30:10Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "11:15",
+      "home": {"score": 5, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 0, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "PHI", "value": 2}
+    },
+    {
+      "t": "2025-09-27T19:30:15Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "11:00",
+      "home": {"score": 8, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 0, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "PHI", "value": 3}
+    },
+    {
+      "t": "2025-09-27T19:30:20Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "10:45",
+      "home": {"score": 8, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 2, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "DAL", "value": 2}
+    },
+    {
+      "t": "2025-09-27T19:30:25Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "10:30",
+      "home": {"score": 8, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 5, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "DAL", "value": 3}
+    },
+    {
+      "t": "2025-09-27T19:30:30Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "10:15",
+      "home": {"score": 8, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 7, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "DAL", "value": 2}
+    },
+    {
+      "t": "2025-09-27T19:30:35Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "10:00",
+      "home": {"score": 8, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 10, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "DAL", "value": 3}
+    },
+    {
+      "t": "2025-09-27T19:30:40Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "09:45",
+      "home": {"score": 8, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 10, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "PACE", "team": "DAL", "label": "Fastest transition of the quarter"}
+    },
+    {
+      "t": "2025-09-27T19:30:45Z",
+      "game_id": "NBA_2025_PHI_DAL_001",
+      "quarter": 1,
+      "clock": "09:30",
+      "home": {"score": 11, "id": "PHI", "abbr": "PHI"},
+      "away": {"score": 10, "id": "DAL", "abbr": "DAL"},
+      "event": {"type": "SCORE", "team": "PHI", "value": 3}
+    }
+  ]
+}
