@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
-import ConfettiCannon from 'react-native-confetti-cannon';
 import type { EventComponentProps } from './registry';
 
 type FloatingHeart = {
@@ -13,33 +12,13 @@ type FloatingHeart = {
 };
 
 export default function CelebrationOverlay({ event }: EventComponentProps) {
-  const [clapCount, setClapCount] = useState(0);
-  const [tapHearts, setTapHearts] = useState<FloatingHeart[]>([]);
-  const [animatedValue] = useState(new Animated.Value(1));
+  const [tapEmojis, setTapEmojis] = useState<FloatingHeart[]>([]);
+  const [tapCount, setTapCount] = useState(0);
+  const pressableRef = useRef<View>(null);
   
-  // Text animation values for growing text effect
+  // Text animation values - using same Animated API as hearts for consistency
   const textScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
-
-  // Get celebration message based on event payload or default to touchdown
-  const celebrationType = event.payload?.celebrationType || 'TOUCHDOWN';
-  const playerName = event.payload?.playerName;
-  const teamColor = event.payload?.teamColor || '#28A745'; // Default green
-
-  const getMessage = () => {
-    switch (celebrationType) {
-      case 'TOUCHDOWN':
-        return playerName ? `${playerName} TOUCHDOWN!` : 'TOUCHDOWN!';
-      case 'FIELD_GOAL':
-        return 'FIELD GOAL!';
-      case 'INTERCEPTION':
-        return 'INTERCEPTION!';
-      case 'SACK':
-        return 'SACK!';
-      default:
-        return 'AMAZING PLAY!';
-    }
-  };
 
   // Start continuous pulsing animation
   useEffect(() => {
@@ -47,13 +26,13 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseOpacity, {
-          toValue: 0.8,
-          duration: 1200,
+          toValue: 0.7,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseOpacity, {
           toValue: 1,
-          duration: 1200,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
@@ -66,34 +45,21 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     };
   }, [pulseOpacity]);
 
-  // Gradually grow text based on tap count
-  useEffect(() => {
-    // Calculate target scale based on clap count
-    // Starts at 1.0, grows to 1.3 (130%) at 25+ taps
-    const targetScale = Math.min(1.0 + (clapCount * 0.012), 1.3);
-    
-    // Smooth transition to new scale
-    Animated.spring(textScale, {
-      toValue: targetScale,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start();
-  }, [clapCount, textScale]);
-
   const addHeartAtPosition = (x: number, y: number) => {
+    console.log('Adding heart at:', x, y);
+    
     // Increment counter
-    setClapCount(current => current + 1);
+    setTapCount(current => current + 1);
     
     // Create animated values for floating effect
     const animatedY = new Animated.Value(0);
     const animatedX = new Animated.Value(0);
     const opacity = new Animated.Value(1);
     
-    // Random horizontal drift (-30 to +30 pixels)
-    const randomDrift = (Math.random() - 0.5) * 60;
+    // Random horizontal drift (-20 to +20 pixels)
+    const randomDrift = (Math.random() - 0.5) * 40;
     
-    const newHeart: FloatingHeart = { 
+    const newEmoji: FloatingHeart = { 
       id: Date.now() + Math.random(),
       x: x, 
       y: y,
@@ -103,277 +69,142 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     };
     
     // Add heart emoji
-    setTapHearts(current => [...current, newHeart]);
+    setTapEmojis(current => [...current, newEmoji]);
     
     // Start floating animation
     Animated.parallel([
       Animated.timing(animatedY, {
-        toValue: -140,
-        duration: 1800,
+        toValue: -120,
+        duration: 1500,
         useNativeDriver: true,
       }),
       Animated.timing(animatedX, {
         toValue: randomDrift,
-        duration: 1800,
+        duration: 1500,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 1800,
+        duration: 1500,
         useNativeDriver: true,
       }),
     ]).start();
     
-    // Remove heart after animation
+    // Remove emoji after animation
     setTimeout(() => {
-      setTapHearts(current => current.filter(heart => heart.id !== newHeart.id));
-    }, 1800);
+      setTapEmojis(current => current.filter(emoji => emoji.id !== newEmoji.id));
+    }, 1500);
   };
 
-  const handleTap = (event: any) => {
+  // Gradually grow text based on tap count - cumulative effect
+  useEffect(() => {
+    // Calculate target scale based on tap count
+    // Starts at 1.0, grows to 1.25 (125%) at 20+ taps
+    const targetScale = Math.min(1.0 + (tapCount * 0.0125), 1.25);
+    
+    console.log('Tap count:', tapCount, 'Target scale:', targetScale);
+    
+    // Smooth transition to new scale
+    Animated.spring(textScale, {
+      toValue: targetScale,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+  }, [tapCount, textScale]);
+
+  const handleTapForLikes = (event: any) => {
     // Use pageX/pageY for absolute screen coordinates, fallback to locationX/locationY
     const x = event.nativeEvent.pageX || event.nativeEvent.locationX || 0;
     const y = event.nativeEvent.pageY || event.nativeEvent.locationY || 0;
     
-    addHeartAtPosition(x, y);
+    console.log('Tap coordinates:', x, y);
     
-    // Animate the screen pulse
-    Animated.sequence([
-      Animated.timing(animatedValue, {
-        toValue: 1.05,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(animatedValue, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    addHeartAtPosition(x, y);
   };
-
-  // Generate enthusiasm level based on clap count
-  const getEnthusiasmLevel = () => {
-    if (clapCount >= 20) return { level: 'INCREDIBLE!', color: '#FFD700' };
-    if (clapCount >= 15) return { level: 'AMAZING!', color: '#FF6B35' };
-    if (clapCount >= 10) return { level: 'FANTASTIC!', color: '#F7931E' };
-    if (clapCount >= 5) return { level: 'GREAT!', color: '#4ECDC4' };
-    return { level: 'Keep Clapping!', color: '#95E1D3' };
-  };
-
-  const enthusiasm = getEnthusiasmLevel();
 
   return (
-    <Pressable style={[styles.container, { backgroundColor: teamColor }]} onPress={handleTap}>
-      <Animated.View style={[styles.content, { transform: [{ scale: animatedValue }] }]}>
-        {/* Confetti for touchdown celebrations */}
-        {celebrationType === 'TOUCHDOWN' && (
-          <ConfettiCannon 
-            count={150} 
-            origin={{x: 0, y: 0}} 
-            fadeOut 
-            explosionSpeed={350}
-            fallSpeed={2000}
-          />
-        )}
-
-        {/* Main celebration message with scaling */}
-        <Animated.Text 
+    <Pressable ref={pressableRef} style={styles.tapForLikesRoot} onPress={handleTapForLikes}>
+      <Animated.Text 
+        style={[
+          styles.tapMessageTop,
+          {
+            transform: [{ scale: textScale }],
+            opacity: pulseOpacity
+          }
+        ]}
+      >
+        TAP ANYWHERE TO
+      </Animated.Text>
+      <Animated.Text 
+        style={[
+          styles.tapMessageBottom,
+          {
+            transform: [{ scale: textScale }],
+            opacity: pulseOpacity
+          }
+        ]}
+      >
+        SHOW YOUR SUPPORT!
+      </Animated.Text>
+      
+      {/* Tap counter - replaces TapOverlay */}
+      <Text style={styles.tapCounter}>👏 {tapCount}</Text>
+      
+      {/* Floating heart emojis */}
+      {tapEmojis.map(emoji => (
+        <Animated.Text
+          key={emoji.id}
           style={[
-            styles.mainMessage,
+            styles.floatingHeart,
             {
-              transform: [{ scale: textScale }],
-              opacity: pulseOpacity
+              left: emoji.x - 25,
+              top: emoji.y - 25,
+              transform: [
+                { translateY: emoji.animatedY },
+                { translateX: emoji.animatedX }
+              ],
+              opacity: emoji.opacity
             }
           ]}
         >
-          {getMessage()}
+          ❤️
         </Animated.Text>
-
-        {/* Clap counter and encouragement */}
-        <View style={styles.clapSection}>
-          <Animated.Text 
-            style={[
-              styles.clapPrompt,
-              {
-                opacity: pulseOpacity
-              }
-            ]}
-          >
-            ❤️ TAP TO SHOW LOVE! ❤️
-          </Animated.Text>
-          <Text style={styles.clapCounter}>{clapCount} HEARTS</Text>
-          <Text style={[styles.enthusiasmLevel, { color: enthusiasm.color }]}>
-            {enthusiasm.level}
-          </Text>
-        </View>
-
-        {/* Floating heart emojis */}
-        {tapHearts.map(heart => (
-          <Animated.Text
-            key={heart.id}
-            style={[
-              styles.floatingHeart,
-              {
-                left: heart.x - 25,
-                top: heart.y - 25,
-                transform: [
-                  { translateY: heart.animatedY },
-                  { translateX: heart.animatedX }
-                ],
-                opacity: heart.opacity
-              }
-            ]}
-          >
-            ❤️
-          </Animated.Text>
-        ))}
-
-        {/* Progress indicator */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  width: `${Math.min((clapCount / 20) * 100, 100)}%`,
-                  backgroundColor: enthusiasm.color 
-                }
-              ]} 
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {clapCount >= 20 ? 'MAX HYPE!' : `${20 - clapCount} more for MAX HYPE!`}
-          </Text>
-        </View>
-
-        {/* Score display */}
-        <Text style={styles.scoreDisplay}>
-          {event.payload?.homeScore || '14'} — {event.payload?.awayScore || '7'}
-        </Text>
-
-        {/* Tap instruction */}
-        <Text style={styles.tapInstruction}>
-          Tap anywhere to show your excitement! 🎉
-        </Text>
-      </Animated.View>
+      ))}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // TAP_FOR_LIKES specific styles
+  tapForLikesRoot: { 
+    flex: 1, 
+    backgroundColor: '#10182b', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
   },
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  mainMessage: {
-    color: 'white',
-    fontSize: 48,
+  tapMessageTop: {
+    color: '#FFFFFF',
+    fontSize: 32,
     fontWeight: '900',
     textAlign: 'center',
-    marginBottom: 20,
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 3,
+    textShadowColor: 'rgba(255, 105, 180, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 15,
+    marginBottom: 15,
   },
-  clapSection: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  clapPrompt: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 10,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  clapCounter: {
-    color: 'white',
+  tapMessageBottom: {
+    color: '#FF1493',
     fontSize: 36,
-    fontWeight: '800',
-    marginBottom: 5,
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
-  enthusiasmLevel: {
-    fontSize: 20,
-    fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  clapAnimation: {
-    position: 'absolute',
-    top: '40%',
-    alignItems: 'center',
-  },
-  clapEmoji: {
-    fontSize: 60,
-    opacity: 0.8,
-  },
-  clapText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '800',
-    marginTop: 5,
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  progressContainer: {
-    width: '80%',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-    backgroundColor: '#FFD700',
-  },
-  progressText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '900',
     textAlign: 'center',
-    opacity: 0.9,
-  },
-  scoreDisplay: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: '600',
-    marginTop: 15,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  tapInstruction: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: 20,
-    paddingHorizontal: 20,
+    textTransform: 'uppercase',
+    letterSpacing: 4,
+    textShadowColor: 'rgba(255, 255, 255, 0.9)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
   },
   floatingHeart: {
     position: 'absolute',
@@ -383,4 +214,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
     zIndex: 999,
   },
+  tapCounter: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    fontSize: 22,
+    color: 'white',
+    fontWeight: '800',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3
+  }
 });
