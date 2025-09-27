@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import type { EventComponentProps } from './registry';
 
 type FloatingEmoji = {
@@ -9,6 +10,8 @@ type FloatingEmoji = {
   y: number;
   animatedY: Animated.Value;
   animatedX: Animated.Value;
+  animatedScale?: Animated.Value;
+  animatedRotate?: Animated.Value;
   opacity: Animated.Value;
 };
 
@@ -22,6 +25,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
   // Text animation values - using same Animated API as hearts for consistency
   const textScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
+  const popScale = useRef(new Animated.Value(1)).current; // small pop on tap
+  const confettiRef = useRef<any>(null);
 
   // Start continuous pulsing animation
   useEffect(() => {
@@ -70,6 +75,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       y: y,
       animatedY: new Animated.Value(0),
       animatedX: new Animated.Value(0),
+      animatedScale: new Animated.Value(0.8),
+      animatedRotate: new Animated.Value(0),
       opacity: new Animated.Value(1),
     };
 
@@ -80,6 +87,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       y: y,
       animatedY: new Animated.Value(0),
       animatedX: new Animated.Value(0),
+      animatedScale: new Animated.Value(0.8),
+      animatedRotate: new Animated.Value(0),
       opacity: new Animated.Value(1),
     };
 
@@ -96,26 +105,51 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       const drift = (Math.random() - 0.5) * 40;
       Animated.parallel([
         Animated.timing(e.animatedY, {
-          toValue: -120,
-          duration: 1500,
+          toValue: -140,
+          duration: 1600,
           useNativeDriver: true,
         }),
         Animated.timing(e.animatedX, {
           toValue: drift,
-          duration: 1500,
+          duration: 1600,
           useNativeDriver: true,
         }),
         Animated.timing(e.opacity, {
           toValue: 0,
-          duration: 1500,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(e.animatedScale as Animated.Value, {
+          toValue: 1.25,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+        Animated.timing(e.animatedRotate as Animated.Value, {
+          toValue: (Math.random() - 0.5) * 2,
+          duration: 1600,
           useNativeDriver: true,
         }),
       ]).start();
       // Remove after animation
       setTimeout(() => {
         setTapEmojis(current => current.filter(emoji => emoji.id !== e.id));
-      }, 1500);
+      }, 1600);
     });
+
+    // Pop the central text briefly
+    Animated.sequence([
+      Animated.timing(popScale, { toValue: 1.15, duration: 120, useNativeDriver: true }),
+      Animated.spring(popScale, { toValue: 1.0, friction: 6, useNativeDriver: true }),
+    ]).start();
+
+    // Fire a confetti blast every 8 taps (if confetti available)
+    if ((tapCount + 1) % 8 === 0 && confettiRef.current) {
+      try {
+        confettiRef.current.start();
+      } catch (_) {
+        // ignore if confettiRef not ready
+      }
+    }
   };
 
   // Gradually grow text based on tap count - cumulative effect
@@ -149,42 +183,58 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
     <Pressable ref={pressableRef} style={styles.tapForLikesRoot} onPress={handleTapForLikes}>
       {/* Beautiful centered text */}
       <View style={styles.centerContent}>
-        <Animated.Text 
-          style={[
-            styles.tapMessage,
-            {
-              transform: [{ scale: textScale }],
-              opacity: pulseOpacity
-            }
-          ]}
-        >
-          TAP TO GET HYPE! 🔥
-        </Animated.Text>
+          <Animated.Text
+            style={[
+              styles.tapMessage,
+              {
+                transform: [{ scale: Animated.multiply(textScale, popScale) }],
+                opacity: pulseOpacity,
+              }
+            ]}
+          >
+            TAP TO GET HYPE! 🔥
+          </Animated.Text>
       </View>
       
-      {/* Tap counter - replaces TapOverlay */}
-      <Text style={styles.tapCounter}>👏 {tapCount}</Text>
+  {/* Tap counter - replaces TapOverlay */}
+  <Text style={styles.tapCounter}>👏 {tapCount}</Text>
       
       {/* Floating emojis (heart + fire) */}
-      {tapEmojis.map((emoji: FloatingEmoji) => (
-        <Animated.Text
-          key={emoji.id}
-          style={[
-            styles.floatingHeart,
-            {
-              left: emoji.x - 25,
-              top: emoji.y - 25,
-              transform: [
-                { translateY: emoji.animatedY },
-                { translateX: emoji.animatedX }
-              ],
-              opacity: emoji.opacity
-            }
-          ]}
-        >
-          {emoji.symbol}
-        </Animated.Text>
-      ))}
+      {tapEmojis.map((emoji: FloatingEmoji) => {
+        const rotate = emoji.animatedRotate
+          ? emoji.animatedRotate.interpolate({ inputRange: [-3, 3], outputRange: ['-180deg', '180deg'] })
+          : '0deg';
+        const scale = emoji.animatedScale ? emoji.animatedScale : new Animated.Value(1);
+        return (
+          <Animated.Text
+            key={emoji.id}
+            style={[
+              styles.floatingHeart,
+              {
+                left: emoji.x - 25,
+                top: emoji.y - 25,
+                transform: [
+                  { translateY: emoji.animatedY },
+                  { translateX: emoji.animatedX },
+                  { scale: scale },
+                  { rotate }
+                ],
+                opacity: emoji.opacity
+              }
+            ]}
+          >
+            {emoji.symbol}
+          </Animated.Text>
+        );
+      })}
+
+      {/* Confetti cannon - hidden by default, triggered via ref */}
+      <ConfettiCannon
+        count={50}
+        origin={{ x: -10, y: 0 }}
+        autoStart={false}
+        ref={confettiRef}
+      />
     </Pressable>
   );
 }
@@ -204,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tapMessage: {
-    color: '#FF1493',
+    color: '#FFFFFF',
     fontSize: 42,
     fontWeight: '900',
     textAlign: 'center',
