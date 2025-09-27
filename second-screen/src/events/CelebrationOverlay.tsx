@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import type { EventComponentProps } from './registry';
 
@@ -146,19 +146,18 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
   };
 
   // Gradually grow text based on tap count - cumulative effect
+  // Each tap increases the target scale slightly and we animate toward it
   useEffect(() => {
     // Calculate target scale based on tap count
-    // Starts at 1.0, grows to 1.25 (125%) at 20+ taps
-    const targetScale = Math.min(1.0 + (tapCount * 0.0125), 1.25);
-    
-    console.log('Tap count:', tapCount, 'Target scale:', targetScale);
-    
-    // Smooth transition to new scale
-    Animated.spring(textScale, {
+    // Starts at 1.0, grows by ~1% per tap up to a maximum (here 1.6)
+    const targetScale = Math.min(1.0 + (tapCount * 0.01), 1.6);
+
+    // Animate slowly toward the new target so growth feels gradual
+    Animated.timing(textScale, {
       toValue: targetScale,
+      duration: 700,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
-      tension: 100,
-      friction: 8,
     }).start();
   }, [tapCount, textScale]);
 
