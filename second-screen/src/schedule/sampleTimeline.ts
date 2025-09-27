@@ -7,8 +7,9 @@ export const demoTimeline: Timeline = {
   ],
   events: [
     { id: 'ev-tap',    kind: 'TAP_FOR_LIKES', at: 10, durationSec: 7 },
-    { id: 'ev-td',     kind: 'TOUCHDOWN', at: 20, durationSec: 5 },
-    { id: 'ev-flag',   kind: 'PENALTY',   at: 25, durationSec: 4 },
-    { id: 'ev-turnover', kind: 'TURNOVER', at: 38, durationSec: 5 },
+    { id: 'ev-battle', kind: 'LIKE_BATTLE', at: 20, durationSec: 10 },
+    { id: 'ev-td',     kind: 'TOUCHDOWN', at: 32, durationSec: 5 },
+    { id: 'ev-flag',   kind: 'PENALTY',   at: 40, durationSec: 4 },
+    { id: 'ev-turnover', kind: 'TURNOVER', at: 47, durationSec: 5 },
   ],
 };

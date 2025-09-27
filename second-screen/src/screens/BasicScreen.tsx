@@ -22,6 +22,12 @@ export default function BasicScreen() {
         <Button title={isRunning ? 'Pause' : 'Start'} onPress={isRunning ? pause : start} />
         <Button title="Reset" onPress={reset} />
         <Button title="+10s" onPress={() => seekTo(elapsedMs + 10000)} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Test Tap Likes" onPress={() => seekTo(10000)} />
+        <Button title="Test Like Battle" onPress={() => seekTo(20000)} />
+      </View>
+      <View style={styles.row}>
         <Button title="Fetch Teams" onPress={async () => {
           try {
             const teams = await getTeams();
