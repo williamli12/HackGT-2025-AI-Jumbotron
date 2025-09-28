@@ -40,9 +40,9 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
         const voteCount = Math.floor(Math.random() * 8) + 3; // 3-10 votes (increased from 1-3)
         
         if (isUpVote) {
-          setThumbsUpCount(prev => prev + voteCount);
+          setThumbsUpCount((prev: number) => prev + voteCount);
         } else {
-          setThumbsDownCount(prev => prev + voteCount);
+          setThumbsDownCount((prev: number) => prev + voteCount);
         }
       }
     };
@@ -80,14 +80,14 @@ export default function ControversialCallOverlay({ event }: EventComponentProps)
     setUserVote(voteType);
     
     if (voteType === 'up') {
-      setThumbsUpCount(prev => prev + 1);
+      setThumbsUpCount((prev: number) => prev + 1);
       // Scale animation for thumbs up
       Animated.sequence([
         Animated.timing(thumbsUpScale, { toValue: 1.2, duration: 150, useNativeDriver: true }),
         Animated.timing(thumbsUpScale, { toValue: 1, duration: 150, useNativeDriver: true }),
       ]).start();
     } else {
-      setThumbsDownCount(prev => prev + 1);
+      setThumbsDownCount((prev: number) => prev + 1);
       // Scale animation for thumbs down
       Animated.sequence([
         Animated.timing(thumbsDownScale, { toValue: 1.2, duration: 150, useNativeDriver: true }),
