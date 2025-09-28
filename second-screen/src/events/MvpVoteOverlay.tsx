@@ -13,9 +13,9 @@ type Player = {
 export default function MvpVoteOverlay({ event }: EventComponentProps) {
   const [userVote, setUserVote] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: 'J. Daniels', position: 'QB', stats: '285 YDS, 3 TD', votes: 0 },
-    { id: '2', name: 'M. Johnson', position: 'RB', stats: '142 YDS, 2 TD', votes: 0 },
-    { id: '3', name: 'K. Williams', position: 'WR', stats: '8 REC, 127 YDS, 1 TD', votes: 0 }
+    { id: '1', name: 'Jalen Hurts', position: 'QB', stats: '285 YDS, 3 TD', votes: 0 },
+    { id: '2', name: 'Saquon Barkley', position: 'RB', stats: '142 YDS, 2 TD', votes: 0 },
+    { id: '3', name: 'Javonte Williams', position: 'RB', stats: '89 YDS, 1 TD', votes: 0 }
   ]);
   
   // Animation values
@@ -43,12 +43,12 @@ export default function MvpVoteOverlay({ event }: EventComponentProps) {
     animateDot();
   }, []);
 
-  // Simulate other users voting
+  // Simulate other users voting - increased velocity
   useEffect(() => {
     const simulateVotes = () => {
-      if (Math.random() < 0.8) { // 80% chance every interval
+      if (Math.random() < 0.95) { // 95% chance every interval (increased from 80%)
         const randomPlayerIndex = Math.floor(Math.random() * players.length);
-        const voteCount = Math.floor(Math.random() * 5) + 1; // 1-5 votes
+        const voteCount = Math.floor(Math.random() * 8) + 3; // 3-10 votes (increased from 1-5)
         
         setPlayers(prev => prev.map((player, index) => 
           index === randomPlayerIndex 
@@ -58,7 +58,7 @@ export default function MvpVoteOverlay({ event }: EventComponentProps) {
       }
     };
 
-    const interval = setInterval(simulateVotes, 1200);
+    const interval = setInterval(simulateVotes, 600); // Twice as fast (reduced from 1200ms)
     return () => clearInterval(interval);
   }, []);
 
@@ -88,8 +88,7 @@ export default function MvpVoteOverlay({ event }: EventComponentProps) {
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>WHO'S YOUR MVP? 🏆</Text>
-        <Text style={styles.subtitle}>Vote for the Most Valuable Player</Text>
+        <Text style={styles.title}>WHO'S YOUR MVP?</Text>
       </View>
 
       {/* Player Cards */}
@@ -165,8 +164,6 @@ export default function MvpVoteOverlay({ event }: EventComponentProps) {
       {/* User feedback */}
       {userVote && (
         <View style={styles.userFeedback}>
-          <Text style={styles.thankYou}>Thanks for voting! 🗳️</Text>
-          <Text style={styles.liveVoting}>Live voting continues...</Text>
         </View>
       )}
 
@@ -192,43 +189,52 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#FFD700',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
+    letterSpacing: 2,
+    textShadowColor: '#FFD700',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
     marginBottom: 4,
+    transform: [{ scale: 1.05 }],
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 15,
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   playersContainer: {
     flex: 1,
-    paddingHorizontal: 15,
+    paddingHorizontal: 25,
     paddingVertical: 5,
   },
   playerCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    marginBottom: 8,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-    minHeight: 80,
-  },
-  leadingCard: {
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    borderColor: '#FFD700',
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    marginBottom: 12,
+    padding: 15,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.25)',
+    minHeight: 90,
+    shadowColor: 'rgba(255,255,255,0.1)',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+    transform: [{ scale: 1.02 }],
+  },
+  leadingCard: {
+    backgroundColor: 'rgba(255,215,0,0.18)',
+    borderColor: '#FFD700',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    transform: [{ scale: 1.05 }, { rotateZ: '0.5deg' }],
   },
   votedCard: {
     backgroundColor: 'rgba(76,175,80,0.15)',
@@ -283,9 +289,13 @@ const styles = StyleSheet.create({
   },
   playerName: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
     marginBottom: 2,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   leadingText: {
     color: '#FFD700',
@@ -311,8 +321,12 @@ const styles = StyleSheet.create({
   },
   voteCount: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+    transform: [{ scale: 1.1 }],
   },
   votePercentage: {
     color: 'rgba(255,255,255,0.7)',
@@ -321,17 +335,29 @@ const styles = StyleSheet.create({
   },
   votedIndicator: {
     position: 'absolute',
-    right: 8,
-    bottom: 8,
+    left: '50%',
+    top: '50%',
+    transform: [{ translateX: -50 }, { translateY: -12 }, { scale: 1.15 }],
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    alignSelf: 'center',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   votedText: {
     color: 'white',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   crown: {
     position: 'absolute',
