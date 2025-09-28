@@ -96,11 +96,15 @@ type StatisticsResponse = {
 
 // --------- Helpers ---------
 function buildUrl(gameId: string) {
-  if (USE_PROXY) {
-    // Use local proxy server to bypass CORS
+  // On mobile (iOS/Android), use direct API call since CORS doesn't apply
+  // On web, use proxy server to bypass CORS restrictions
+  const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
+  
+  if (!isMobile && USE_PROXY) {
+    // Use local proxy server to bypass CORS (web only)
     return `http://localhost:3001/api/nfl/games/${gameId}/statistics?api_key=${encodeURIComponent(API_KEY)}`;
   } else {
-    // Direct API call (may fail due to CORS in browser)
+    // Direct API call (works on mobile, may fail due to CORS in browser)
     const base = `https://api.sportradar.com/nfl/official/${ACCESS_LEVEL}/v7/${LANG}/games/${gameId}/statistics.json`;
     const join = base.includes("?") ? "&" : "?";
     return `${base}${join}api_key=${encodeURIComponent(API_KEY)}`;
@@ -109,7 +113,9 @@ function buildUrl(gameId: string) {
 
 async function fetchStatistics(gameId: string): Promise<StatisticsResponse> {
   const url = buildUrl(gameId);
+  const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
   console.log('🌐 Attempting to fetch from URL:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
+  console.log('📱 Platform detected:', Platform.OS, '| Mobile:', isMobile, '| Using proxy:', !isMobile && USE_PROXY);
   
   try {
     const res = await fetch(url, {
@@ -136,8 +142,10 @@ async function fetchStatistics(gameId: string): Promise<StatisticsResponse> {
     console.error('🚨 Fetch Error Details:', error);
     
     // Check if it's a network/CORS error
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      if (USE_PROXY) {
+    if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('Network request failed'))) {
+      if (isMobile) {
+        throw new Error('Mobile Network Error: Cannot access Sportradar API. Check your internet connection and API key.');
+      } else if (USE_PROXY) {
         throw new Error('Proxy Server Error: Cannot connect to local proxy server at localhost:3001. Make sure to run: npm run proxy');
       } else {
         throw new Error('CORS/Network Error: Cannot access Sportradar API from browser. This is likely due to CORS restrictions. Enable USE_PROXY or test on mobile device.');

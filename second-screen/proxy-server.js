@@ -12,7 +12,7 @@ const PORT = 3001;
 
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:8081', 'http://localhost:19006', 'http://localhost:3000'],
+  origin: ['http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083', 'http://localhost:8084', 'http://localhost:19006', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
@@ -115,6 +115,9 @@ app.listen(PORT, () => {
   console.log('');
   console.log('🌐 CORS enabled for:');
   console.log('  - http://localhost:8081 (Expo web)');
+  console.log('  - http://localhost:8082 (Custom port)');
+  console.log('  - http://localhost:8083 (Custom port)');
+  console.log('  - http://localhost:8084 (Custom port)');
   console.log('  - http://localhost:19006 (Expo web alt)');
   console.log('  - http://localhost:3000 (React dev server)');
   console.log('');
