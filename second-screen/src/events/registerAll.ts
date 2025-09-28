@@ -6,7 +6,7 @@ import CelebrationOverlay from './CelebrationOverlay';
 import ControversialCallOverlay from './ControversialCallOverlay';
 import MvpVoteOverlay from './MvpVoteOverlay';
 import TwoPointKickPollOverlay from './TwoPointKickPollOverlay';
-import StatsComparisonOverlay from './StatsComparisonOverlay';
+import GameSummaryOverlay from './GameSummaryOverlay';
 
 export function registerAllEvents() {
   registerEvent('TOUCHDOWN', TouchdownOverlay);
@@ -16,5 +16,5 @@ export function registerAllEvents() {
   registerEvent('CONTROVERSIAL_CALL', ControversialCallOverlay);
   registerEvent('MVP_VOTE', MvpVoteOverlay);
   registerEvent('TWO_POINT_KICK_POLL', TwoPointKickPollOverlay);
-  registerEvent('STATS_COMPARISON', StatsComparisonOverlay);
+  registerEvent('STATS_COMPARISON', GameSummaryOverlay);
 }
