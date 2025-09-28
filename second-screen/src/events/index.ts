@@ -13,4 +13,7 @@ export { default as PenaltyOverlay } from './PenaltyOverlay';
 export { default as TurnoverOverlay } from './TurnoverOverlay';
 export { default as CelebrationOverlay } from './CelebrationOverlay';
 export { default as ControversialCallOverlay } from './ControversialCallOverlay';
+export { default as MvpVoteOverlay } from './MvpVoteOverlay';
+export { default as TwoPointKickPollOverlay } from './TwoPointKickPollOverlay';
+export { default as GameSummaryOverlay } from './GameSummaryOverlay';
 export { default as ExampleAdvancedEvent } from './ExampleAdvancedEvent';
