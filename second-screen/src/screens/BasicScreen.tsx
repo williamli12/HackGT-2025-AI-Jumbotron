@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTimer } from '../store/useTimer';
 import { getTeams } from '../services/api';
 import EventTestButtons from '../components/EventTestButtons';
@@ -13,6 +14,7 @@ function mmss(ms: number) {
 
 export default function BasicScreen() {
   const { elapsedMs, start, pause, reset, seekTo, isRunning } = useTimer();
+  const navigation = useNavigation();
 
   return (
     <View style={styles.root}>
@@ -31,6 +33,12 @@ export default function BasicScreen() {
             console.warn('API not running:', String(e));
           }
         }} />
+      </View>
+      <View style={styles.row}>
+        <Button 
+          title="🏈 Game Summary" 
+          onPress={() => navigation.navigate('GameSummary' as never)} 
+        />
       </View>
       <EventTestButtons />
     </View>
