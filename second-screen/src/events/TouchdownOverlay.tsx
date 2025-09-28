@@ -1,86 +1,80 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import type { EventComponentProps } from './registry';
 export default function TouchdownOverlay({ event }: EventComponentProps) {
-  // Floating clap emoji state
-  type FloatingEmoji = {
+  // Emoji rain state
+  type RainEmoji = {
     id: number;
+    symbol: string;
     x: number;
-    y: number;
     animatedY: Animated.Value;
-    animatedX: Animated.Value;
     opacity: Animated.Value;
     scale: Animated.Value;
   };
-  const [emojis, setEmojis] = useState<FloatingEmoji[]>([]);
-  const MAX_EMOJIS = 30;
+  const [rainEmojis, setRainEmojis] = useState<RainEmoji[]>([]);
+  const EMOJI_SYMBOLS = ['👏', '🏈', '🏆', '🎉'];
+  const RAIN_COUNT = 24;
+  const { width, height } = Dimensions.get('window');
 
-  const handleTap = (event: any) => {
-    const x = event.nativeEvent.pageX || event.nativeEvent.locationX || 0;
-    const y = event.nativeEvent.pageY || event.nativeEvent.locationY || 0;
-    const id = Date.now() + Math.random();
-    const emoji: FloatingEmoji = {
-      id,
-      x,
-      y,
-      animatedY: new Animated.Value(0),
-      animatedX: new Animated.Value(0),
-      opacity: new Animated.Value(1),
-      scale: new Animated.Value(0.8),
-    };
-    setEmojis(current => {
-      const next = [...current, emoji];
-      return next.length <= MAX_EMOJIS ? next : next.slice(next.length - MAX_EMOJIS);
+  useEffect(() => {
+    // Trigger emoji rain on mount (touchdown event)
+    const newEmojis: RainEmoji[] = Array.from({ length: RAIN_COUNT }).map((_, i) => {
+      const symbol = EMOJI_SYMBOLS[Math.floor(Math.random() * EMOJI_SYMBOLS.length)];
+      const x = Math.random() * (width - 40) + 20;
+      return {
+        id: Date.now() + i + Math.random(),
+        symbol,
+        x,
+        animatedY: new Animated.Value(-60),
+        opacity: new Animated.Value(1),
+        scale: new Animated.Value(1),
+      };
     });
-    // Animate
-    const drift = (Math.random() - 0.5) * 40;
-    Animated.parallel([
-      Animated.timing(emoji.animatedY, {
-        toValue: -140,
-        duration: 1600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(emoji.animatedX, {
-        toValue: drift,
-        duration: 1600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(emoji.opacity, {
-        toValue: 0,
-        duration: 1600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(emoji.scale, {
-        toValue: 1.25,
-        friction: 6,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    setTimeout(() => {
-      setEmojis(current => current.filter(e => e.id !== id));
-    }, 1600);
-  };
+    setRainEmojis(newEmojis);
+    // Animate all emojis falling
+    newEmojis.forEach((emoji, idx) => {
+      Animated.parallel([
+        Animated.timing(emoji.animatedY, {
+          toValue: height + 60,
+          duration: 1800 + Math.random() * 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(emoji.opacity, {
+          toValue: 0,
+          duration: 1800 + Math.random() * 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(emoji.scale, {
+          toValue: 1.2 + Math.random() * 0.5,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+    // Remove emojis after animation
+    const timeout = setTimeout(() => setRainEmojis([]), 2200);
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
-    <Pressable style={styles.root} onPress={handleTap}>
+    <View style={styles.root}>
       <View style={styles.centerContent}>
         <Text style={styles.msg}>TOUCHDOWN! 🏆</Text>
       </View>
       <ConfettiCannon count={120} origin={{x: 0, y: 0}} fadeOut />
-      {/* Floating clap emojis */}
-      {emojis.map(e => (
+      {/* Emoji rain effect */}
+      {rainEmojis.map(e => (
         <Animated.Text
           key={e.id}
           style={{
             position: 'absolute',
-            left: e.x - 25,
-            top: e.y - 25,
+            left: e.x,
+            top: 0,
             fontSize: 40,
             opacity: e.opacity,
             transform: [
               { translateY: e.animatedY },
-              { translateX: e.animatedX },
               { scale: e.scale },
             ],
             textShadowColor: 'rgba(0,0,0,0.5)',
@@ -89,10 +83,10 @@ export default function TouchdownOverlay({ event }: EventComponentProps) {
             zIndex: 999,
           }}
         >
-          {'👏'}
+          {e.symbol}
         </Animated.Text>
       ))}
-    </Pressable>
+    </View>
   );
 }
 const styles = StyleSheet.create({
