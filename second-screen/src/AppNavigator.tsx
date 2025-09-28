@@ -42,13 +42,13 @@ function MainScreen() {
         ? <EventHost event={displayEvent} />
         : <BasicScreen />
       }
-      <DebugHUD
+      {/* <DebugHUD
         mode={displayMode}
         elapsedSec={elapsedSec}
         clipLabel={currentClip?.label ?? null}
         nextEventAt={nextEvent?.at ?? null}
         nextEventKind={nextEvent?.kind ?? null}
-      />
+      /> */}
     </>
   );
 }

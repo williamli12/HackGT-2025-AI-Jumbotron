@@ -14,7 +14,7 @@ export const newGameTimeline: Timeline = {
       id: 'ev-penalty-flag', 
       kind: 'CONTROVERSIAL_CALL', 
       at: 10, 
-      durationSec: 10,
+      durationSec: 2, // Reduced from 4 to 2 seconds (-2s more)
       payload: {
         callType: 'HOLDING',
         callDescription: 'Offensive Holding',
@@ -23,11 +23,11 @@ export const newGameTimeline: Timeline = {
       }
     },
     
-    // Touchdown @ 22
+    // Touchdown @ 23 (moved 1 second later)
     { 
       id: 'ev-touchdown', 
       kind: 'TOUCHDOWN', 
-      at: 22, 
+      at: 23, // Moved from 22 to 23 seconds (+1s later)
       durationSec: 4,
       payload: {
         playerName: 'J. Daniels',
@@ -42,7 +42,7 @@ export const newGameTimeline: Timeline = {
       id: 'ev-2pt-decision', 
       kind: 'TWO_POINT_KICK_POLL', 
       at: 27, 
-      durationSec: 15,
+      durationSec: 10, // Reduced from 11 to 10 seconds (-1s more)
       payload: {
         situation: 'Go for 2 or kick the extra point?',
         timeRemaining: '2:15',
@@ -57,7 +57,7 @@ export const newGameTimeline: Timeline = {
       id: 'ev-defense-hype', 
       kind: 'CELEBRATION', 
       at: 46, 
-      durationSec: 15,
+      durationSec: 12, // Reduced from 13 to 12 seconds (-1s more)
       payload: {
         celebrationType: 'DEFENSE_STOP',
         playerName: 'Defense',
@@ -73,7 +73,7 @@ export const newGameTimeline: Timeline = {
       id: 'ev-mvp-voting', 
       kind: 'MVP_VOTE', 
       at: 63, 
-      durationSec: 15,
+      durationSec: 13.5, // Reduced from 15 to 13.5 seconds (-1.5s)
       payload: {
         gameContext: 'Game Over! Who\'s your MVP?',
         players: [
@@ -107,8 +107,8 @@ export const newGameTimeline: Timeline = {
     { 
       id: 'ev-final-stats', 
       kind: 'STATS_COMPARISON', 
-      at: 80, 
-      durationSec: 20,
+      at: 77, // Moved from 80 to 77 to start right after MVP vote (63 + 13.5 = 76.5)
+      durationSec: 25, // Increased from 20 to 25 seconds (+5s longer)
       payload: {
         gameTitle: 'Final Game Performance',
         gameStats: {
