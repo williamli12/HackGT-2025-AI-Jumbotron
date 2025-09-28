@@ -136,8 +136,8 @@ export default function CelebrationOverlay({ event }: EventComponentProps) {
       Animated.spring(popScale, { toValue: 1.0, friction: 6, useNativeDriver: true }),
     ]).start();
 
-    // Fire a confetti blast every 8 taps (if confetti available)
-    if ((tapCount + 1) % 8 === 0 && confettiRef.current) {
+  // Fire a confetti blast every 10 taps (if confetti available)
+  if ((tapCount + 1) % 10 === 0 && confettiRef.current) {
       try {
         confettiRef.current.start();
       } catch (_) {
