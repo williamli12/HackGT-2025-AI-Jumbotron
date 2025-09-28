@@ -17,7 +17,7 @@ export default function TwoPointKickPollOverlay({ event }: EventComponentProps) 
     { 
       id: 'twoPt', 
       title: 'GO FOR 2', 
-      description: 'Two-Point Conversion', 
+      description: '', 
       icon: '💪', 
       votes: 0, 
       successRate: '47%' 
@@ -25,7 +25,7 @@ export default function TwoPointKickPollOverlay({ event }: EventComponentProps) 
     { 
       id: 'kick', 
       title: 'KICK IT', 
-      description: 'Extra Point Kick', 
+      description: '', 
       icon: '🦵', 
       votes: 0, 
       successRate: '94%' 
@@ -59,12 +59,12 @@ export default function TwoPointKickPollOverlay({ event }: EventComponentProps) 
     animateDot();
   }, []);
 
-  // Simulate other users voting
+  // Simulate other users voting - increased velocity
   useEffect(() => {
     const simulateVotes = () => {
-      if (Math.random() < 0.85) { // 85% chance every interval
+      if (Math.random() < 0.95) { // 95% chance every interval (increased from 85%)
         const isKickVote = Math.random() < 0.6; // Slightly favor kick (more conservative)
-        const voteCount = Math.floor(Math.random() * 7) + 2; // 2-8 votes
+        const voteCount = Math.floor(Math.random() * 10) + 3; // 3-12 votes (increased from 2-8)
         
         setOptions(prev => prev.map(option => 
           option.id === (isKickVote ? 'kick' : 'twoPt')
@@ -74,7 +74,7 @@ export default function TwoPointKickPollOverlay({ event }: EventComponentProps) 
       }
     };
 
-    const interval = setInterval(simulateVotes, 1000);
+    const interval = setInterval(simulateVotes, 500); // Twice as fast (reduced from 1000ms)
     return () => clearInterval(interval);
   }, []);
 
@@ -120,8 +120,7 @@ export default function TwoPointKickPollOverlay({ event }: EventComponentProps) 
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>WHAT'S THE CALL? 🏈</Text>
-        <Text style={styles.subtitle}>4th & Goal - Down by 5</Text>
+        <Text style={styles.title}>BE THE COACH!</Text>
       </View>
 
       {/* Voting Options */}
@@ -236,11 +235,6 @@ export default function TwoPointKickPollOverlay({ event }: EventComponentProps) 
       {/* User feedback */}
       {userVote && (
         <View style={styles.userFeedback}>
-          <Text style={styles.thankYou}>
-            You voted {userVote === 'twoPt' ? 'GO FOR 2!' : 'KICK IT!'} 
-            {userVote === 'twoPt' ? ' 💪' : ' 🦵'}
-          </Text>
-          <Text style={styles.liveVoting}>See what others think...</Text>
         </View>
       )}
 
@@ -265,40 +259,53 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   title: {
-    color: '#FF6B35',
-    fontSize: 24,
+    color: '#FFD700',
+    fontSize: 30,
     fontWeight: '900',
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 6,
+    letterSpacing: 2.5,
+    textShadowColor: '#FFD700',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 15,
     marginBottom: 6,
+    transform: [{ scale: 1.08 }],
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 15,
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   votingArea: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 40,
     paddingVertical: 10,
     justifyContent: 'center',
   },
   optionContainer: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    marginBottom: 20,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 22,
+    marginBottom: 10,
+    padding: 12,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.25)',
+    shadowColor: 'rgba(255,255,255,0.1)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    transform: [{ scale: 1.03 }],
   },
   votedOption: {
     borderColor: '#4CAF50',
-    backgroundColor: 'rgba(76,175,80,0.15)',
+    backgroundColor: 'rgba(76,175,80,0.18)',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    transform: [{ scale: 1.06 }, { rotateZ: '0.3deg' }],
   },
   optionContent: {
     position: 'relative',
@@ -306,26 +313,29 @@ const styles = StyleSheet.create({
   optionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   optionIcon: {
-    fontSize: 40,
-    marginRight: 12,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 45,
+    marginRight: 15,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+    transform: [{ scale: 1.1 }],
   },
   optionInfo: {
     flex: 1,
   },
   optionTitle: {
     color: 'white',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
     marginBottom: 4,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+    transform: [{ scale: 1.05 }],
   },
   optionDescription: {
     color: 'rgba(255,255,255,0.8)',
@@ -334,9 +344,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   successRate: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600',
   },
   voteStats: {
     alignItems: 'center',
@@ -344,23 +354,29 @@ const styles = StyleSheet.create({
   },
   voteCount: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+    transform: [{ scale: 1.15 }],
   },
   votePercentage: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   barContainer: {
-    height: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 6,
+    height: 15,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 4,
+    shadowColor: 'rgba(0,0,0,0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
   voteBar: {
     height: '100%',
@@ -374,17 +390,29 @@ const styles = StyleSheet.create({
   },
   votedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(76,175,80,0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    left: '50%',
+    top: '50%',
+    transform: [{ translateX: -50 }, { translateY: -15 }, { scale: 1.1 }],
+    backgroundColor: 'rgba(76,175,80,0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    alignSelf: 'center',
   },
   votedText: {
     color: 'white',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   userFeedback: {
     alignItems: 'center',
