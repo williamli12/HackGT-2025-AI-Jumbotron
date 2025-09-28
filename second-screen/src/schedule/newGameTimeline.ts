@@ -14,7 +14,7 @@ export const newGameTimeline: Timeline = {
       id: 'ev-penalty-flag', 
       kind: 'CONTROVERSIAL_CALL', 
       at: 10, 
-      durationSec: 2, // Reduced from 4 to 2 seconds (-2s more)
+      durationSec: 5, // Increased from 2 to 5 seconds (+3s more)
       payload: {
         callType: 'HOLDING',
         callDescription: 'Offensive Holding',
