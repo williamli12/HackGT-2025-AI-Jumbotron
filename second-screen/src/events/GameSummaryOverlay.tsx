@@ -5,10 +5,14 @@
  * Replaces the StatsComparisonOverlay with real-time data
  */
 
-import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Platform } from "react-native";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { View, Text, StyleSheet, Animated, Dimensions, Platform } from "react-native";
 import { NFL_API_KEY } from '@env';
 import type { EventComponentProps } from './registry';
+import TapOverlay from '../components/TapOverlay';
+import { testEnvLoading } from '../utils/envTest';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // --------- CONFIG ---------
 const ACCESS_LEVEL = "trial";
@@ -52,15 +56,18 @@ type StatisticsResponse = {
 
 // --------- Helpers ---------
 function buildUrl(gameId: string) {
-  // On mobile (iOS/Android), use direct API call since CORS doesn't apply
-  // On web, use proxy server to bypass CORS restrictions
   const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
   
-  if (!isMobile && USE_PROXY) {
-    // Use local proxy server to bypass CORS (web only)
+  if (isMobile) {
+    // On mobile, always use direct API call (no CORS restrictions)
+    const base = `https://api.sportradar.com/nfl/official/${ACCESS_LEVEL}/v7/${LANG}/games/${gameId}/statistics.json`;
+    const join = base.includes("?") ? "&" : "?";
+    return `${base}${join}api_key=${encodeURIComponent(API_KEY)}`;
+  } else if (USE_PROXY) {
+    // On web, use proxy server to bypass CORS
     return `http://localhost:3001/api/nfl/games/${gameId}/statistics?api_key=${encodeURIComponent(API_KEY)}`;
   } else {
-    // Direct API call (works on mobile, may fail due to CORS in browser)
+    // Direct API call (may fail due to CORS in browser)
     const base = `https://api.sportradar.com/nfl/official/${ACCESS_LEVEL}/v7/${LANG}/games/${gameId}/statistics.json`;
     const join = base.includes("?") ? "&" : "?";
     return `${base}${join}api_key=${encodeURIComponent(API_KEY)}`;
@@ -69,9 +76,7 @@ function buildUrl(gameId: string) {
 
 async function fetchStatistics(gameId: string): Promise<StatisticsResponse> {
   const url = buildUrl(gameId);
-  const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
   console.log('🌐 GameSummaryOverlay fetching from URL:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
-  console.log('📱 Platform detected:', Platform.OS, '| Mobile:', isMobile, '| Using proxy:', !isMobile && USE_PROXY);
   
   try {
     const res = await fetch(url, {
@@ -93,11 +98,12 @@ async function fetchStatistics(gameId: string): Promise<StatisticsResponse> {
   } catch (error) {
     console.error('🚨 GameSummaryOverlay Fetch Error:', error);
     
-    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+    if (error instanceof TypeError && (error.message.includes('Network request failed') || error.message.includes('Failed to fetch'))) {
+      const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
       if (isMobile) {
-        throw new Error('Mobile Network Error: Cannot access Sportradar API. Check your internet connection and API key.');
+        throw new Error('Network Error: Cannot reach Sportradar API. Check internet connection.');
       } else {
-        throw new Error('Proxy Server Error: Cannot connect to local proxy server at localhost:3001. Make sure to run: npm run proxy');
+        throw new Error('Proxy Server Error: Start proxy server with: npm run proxy');
       }
     }
     
@@ -131,76 +137,135 @@ export default function GameSummaryOverlay({ event }: EventComponentProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<StatisticsResponse | null>(null);
+  
+  // Animation values for professional NFL presentation
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const liveDotOpacity = useRef(new Animated.Value(1)).current;
 
   const canFetch = useMemo(() => {
-    return typeof API_KEY === "string" && 
+    const hasApiKey = typeof API_KEY === "string" && 
            API_KEY.length > 0 && 
            API_KEY !== "your_sportradar_api_key_here" &&
            API_KEY !== "your_actual_sportradar_api_key_here";
+    console.log('🏈 GameSummaryOverlay: API Key check:', { hasApiKey, apiKeyLength: API_KEY.length, apiKeyType: typeof API_KEY });
+    return hasApiKey;
   }, []);
 
   const run = async () => {
     try {
       setStatus("loading");
       setError(null);
+      console.log('🏈 GameSummaryOverlay: Starting fetch for game', GAME_ID);
       const json = await fetchStatistics(GAME_ID);
+      console.log('🏈 GameSummaryOverlay: Received data:', json ? 'Success' : 'No data');
       setData(json);
       setStatus("done");
     } catch (e: any) {
+      console.error('🏈 GameSummaryOverlay: Error occurred:', e);
       setStatus("error");
       setError(e?.message || String(e));
     }
   };
 
+  // Entrance animation and continuous effects
   useEffect(() => {
+    // Fade in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: false,
+    }).start();
+
+    // Continuous pulse animation for live data feel
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    // Live dot animation
+    const liveDotAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(liveDotOpacity, { toValue: 0.3, duration: 1000, useNativeDriver: false }),
+        Animated.timing(liveDotOpacity, { toValue: 1, duration: 1000, useNativeDriver: false }),
+      ])
+    );
+
+    pulseAnimation.start();
+    liveDotAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+      liveDotAnimation.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Test environment variable loading on component mount
+    const envTest = testEnvLoading();
+    console.log('🏈 GameSummaryOverlay: Environment test result:', envTest);
+    console.log('🏈 GameSummaryOverlay: useEffect triggered, canFetch:', canFetch);
+    
     if (canFetch) {
+      console.log('🏈 GameSummaryOverlay: Attempting to fetch data...');
       run();
+    } else {
+      console.log('🏈 GameSummaryOverlay: Cannot fetch - API key not valid');
     }
   }, [canFetch]);
 
   const home = data?.statistics?.home;
   const away = data?.statistics?.away;
 
+  // Error state - simplified for overlay
   if (!canFetch) {
     return (
       <View style={styles.root}>
-        <View style={styles.header}>
-          <Text style={styles.title}>🏈 Game Summary</Text>
-          <Text style={styles.subtitle}>Cowboys vs Eagles</Text>
-        </View>
-        <View style={styles.warningCard}>
-          <Text style={styles.warn}>⚠️ Set NFL_API_KEY in your .env file</Text>
-          <Text style={styles.warnSub}>Create .env file with: NFL_API_KEY=your_key</Text>
-        </View>
+        <Animated.View style={[styles.centerContent, { opacity: fadeAnim }]}>
+          <Text style={styles.title}>🏈 GAME SUMMARY</Text>
+          <Text style={styles.errorMsg}>⚠️ API KEY REQUIRED</Text>
+          <Text style={styles.subtitle}>Configure NFL_API_KEY in .env</Text>
+        </Animated.View>
+        <TapOverlay />
       </View>
     );
   }
 
+  // Loading state
   if (status === "loading") {
     return (
       <View style={styles.root}>
-        <View style={styles.header}>
-          <Text style={styles.title}>🏈 Game Summary</Text>
-          <Text style={styles.subtitle}>Loading live data...</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loading}>📡 Fetching NFL Statistics...</Text>
-        </View>
+        <Animated.View style={[styles.centerContent, { opacity: fadeAnim }]}>
+          <Text style={styles.title}>🏈 GAME SUMMARY</Text>
+          <Animated.Text style={[styles.loadingMsg, { transform: [{ scale: pulseAnim }] }]}>
+            📡 LOADING LIVE DATA...
+          </Animated.Text>
+        </Animated.View>
+        <TapOverlay />
       </View>
     );
   }
 
+  // Error state
   if (status === "error") {
     return (
       <View style={styles.root}>
-        <View style={styles.header}>
-          <Text style={styles.title}>🏈 Game Summary</Text>
-          <Text style={styles.subtitle}>Cowboys vs Eagles</Text>
-        </View>
-        <View style={styles.errorCard}>
-          <Text style={styles.errorText}>❌ Error loading data</Text>
-          <Text style={styles.errorDetail}>{error}</Text>
-        </View>
+        <Animated.View style={[styles.centerContent, { opacity: fadeAnim }]}>
+          <Text style={styles.title}>🏈 GAME SUMMARY</Text>
+          <Text style={styles.errorMsg}>❌ ERROR LOADING DATA</Text>
+          <Text style={styles.subtitle}>{error}</Text>
+        </Animated.View>
+        <TapOverlay />
       </View>
     );
   }
@@ -208,187 +273,294 @@ export default function GameSummaryOverlay({ event }: EventComponentProps) {
   if (!data) {
     return (
       <View style={styles.root}>
-        <View style={styles.header}>
-          <Text style={styles.title}>🏈 Game Summary</Text>
-          <Text style={styles.subtitle}>No data available</Text>
-        </View>
+        <Animated.View style={[styles.centerContent, { opacity: fadeAnim }]}>
+          <Text style={styles.title}>🏈 GAME SUMMARY</Text>
+          <Text style={styles.subtitle}>NO DATA AVAILABLE</Text>
+        </Animated.View>
+        <TapOverlay />
       </View>
     );
   }
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        {/* Minimal Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>🏈 Game Summary</Text>
-          <Text style={styles.subtitle}>Cowboys vs Eagles • Week 1</Text>
-          <Text style={styles.gameStatus}>
-            {label(data.status)} • Q{label(data.quarter)} • {label(data.clock)}
-          </Text>
-        </View>
-
-        {/* Live Score */}
-        <View style={styles.scoreSection}>
-          <View style={styles.scoreContainer}>
-            <View style={styles.teamScore}>
-              <Text style={styles.teamName}>{safeTeamName(away)}</Text>
-              <Text style={styles.scoreText}>{calculateScore(away)}</Text>
+          <View style={styles.topRow}>
+            <View style={styles.liveIndicator}>
+              <Animated.View style={[styles.liveDot, { opacity: liveDotOpacity }]} />
+              <Text style={styles.liveText}>LIVE</Text>
             </View>
-            <Text style={styles.vs}>VS</Text>
-            <View style={styles.teamScore}>
-              <Text style={styles.teamName}>{safeTeamName(home)}</Text>
-              <Text style={styles.scoreText}>{calculateScore(home)}</Text>
-            </View>
+            <Text style={styles.gameStatus}>
+              Q{label(data.quarter)} • {label(data.clock)}
+            </Text>
           </View>
+          <Text style={styles.title}>🏈 EAGLES WIN!</Text>
         </View>
 
-        {/* Team Statistics */}
+        {/* Score Display */}
+        <Animated.View style={[styles.scoreContainer, { transform: [{ scale: pulseAnim }] }]}>
+          <View style={styles.teamScore}>
+            <Text style={styles.teamName}>{safeTeamName(away).toUpperCase()}</Text>
+            <Text style={styles.scoreText}>{calculateScore(away)}</Text>
+          </View>
+          <Text style={styles.vs}>—</Text>
+          <View style={styles.teamScore}>
+            <Text style={styles.scoreText}>{calculateScore(home)}</Text>
+            <Text style={styles.teamName}>{safeTeamName(home).toUpperCase()}</Text>
+          </View>
+        </Animated.View>
+
+        {/* Team vs Team Stats */}
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>📊 Team Statistics</Text>
-          <TeamStats teamLabel={`🛣️ ${safeTeamName(away)} (Away)`} stats={away} />
-          <TeamStats teamLabel={`🏠 ${safeTeamName(home)} (Home)`} stats={home} />
+          {/* Team Headers */}
+          <View style={styles.teamHeaders}>
+            <Text style={styles.teamHeaderAway}>{safeTeamName(away).toUpperCase()}</Text>
+            <Text style={styles.teamHeaderHome}>{safeTeamName(home).toUpperCase()}</Text>
+          </View>
+          
+          {/* Stats Rows */}
+          <StatRow 
+            label="🎯 PASSING YARDS" 
+            awayValue={away?.passing?.totals?.yards} 
+            homeValue={home?.passing?.totals?.yards}
+          />
+          <StatRow 
+            label="🏃 RUSHING YARDS" 
+            awayValue={away?.rushing?.totals?.yards} 
+            homeValue={home?.rushing?.totals?.yards}
+          />
+          <StatRow 
+            label="⬇️ FIRST DOWNS" 
+            awayValue={away?.first_downs?.total} 
+            homeValue={home?.first_downs?.total}
+          />
+          <StatRow 
+            label="🏆 TOUCHDOWNS" 
+            awayValue={away?.touchdowns?.total} 
+            homeValue={home?.touchdowns?.total}
+          />
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Live NFL Data • {new Date().toLocaleTimeString()}
-          </Text>
-        </View>
-      </ScrollView>
+        {/* Footer */}
+        <Text style={styles.footerText}>
+          LIVE NFL DATA
+        </Text>
+      </Animated.View>
+      
+      <TapOverlay />
     </View>
   );
 }
 
-// Render team statistics component
-function TeamStats({ teamLabel, stats }: { teamLabel: string; stats: any }) {
-  if (!stats) return (
-    <View style={styles.teamStatsContainer}>
-      <Text style={styles.teamStatsTitle}>{teamLabel}</Text>
-      <Text style={styles.noData}>No statistics available</Text>
-    </View>
-  );
-
-  const passing = stats.passing?.totals;
-  const rushing = stats.rushing?.totals;
-  const firstdowns = stats.first_downs;
-  const touchdowns = stats.touchdowns;
-  const efficiency = stats.efficiency;
-
+// Clear stat row with team columns
+function StatRow({ label: statLabel, awayValue, homeValue }: { 
+  label: string; 
+  awayValue: any; 
+  homeValue: any;
+}) {
+  const awayVal = label(awayValue);
+  const homeVal = label(homeValue);
+  
   return (
-    <View style={styles.teamStatsContainer}>
-      <Text style={styles.teamStatsTitle}>{teamLabel}</Text>
-      
-      <View style={styles.statsGrid}>
-        {/* Passing Stats */}
-        {passing && (
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>🎯 Passing</Text>
-            <Text style={styles.statValue}>
-              {label(passing.yards)} yds • {label(passing.completions)}/{label(passing.attempts)}
-            </Text>
-            <Text style={styles.statDetail}>
-              {label(passing.touchdowns)} TD • {label(passing.interceptions)} INT
-            </Text>
-          </View>
-        )}
-        
-        {/* Rushing Stats */}
-        {rushing && (
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>🏃 Rushing</Text>
-            <Text style={styles.statValue}>
-              {label(rushing.yards)} yds • {label(rushing.attempts)} att
-            </Text>
-            <Text style={styles.statDetail}>
-              {label(rushing.touchdowns)} TD • {label(rushing.avg_yards)} avg
-            </Text>
-          </View>
-        )}
-        
-        {/* First Downs */}
-        {firstdowns && (
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>⬇️ First Downs</Text>
-            <Text style={styles.statValue}>{label(firstdowns.total)}</Text>
-            <Text style={styles.statDetail}>
-              {label(firstdowns.pass)} pass • {label(firstdowns.rush)} rush
-            </Text>
-          </View>
-        )}
-        
-        {/* Touchdowns */}
-        {touchdowns && (
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>🏆 Touchdowns</Text>
-            <Text style={styles.statValue}>{label(touchdowns.total)}</Text>
-            <Text style={styles.statDetail}>
-              {label(touchdowns.pass)} pass • {label(touchdowns.rush)} rush
-            </Text>
-          </View>
-        )}
-        
-        {/* 3rd Down Efficiency */}
-        {efficiency?.thirddown && (
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>📊 3rd Down</Text>
-            <Text style={styles.statValue}>
-              {label(efficiency.thirddown.successes)}/{label(efficiency.thirddown.attempts)}
-            </Text>
-            <Text style={styles.statDetail}>
-              {label(efficiency.thirddown.pct)}%
-            </Text>
-          </View>
-        )}
-        
-        {/* Red Zone */}
-        {efficiency?.redzone && (
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>🎯 Red Zone</Text>
-            <Text style={styles.statValue}>
-              {label(efficiency.redzone.successes)}/{label(efficiency.redzone.attempts)}
-            </Text>
-            <Text style={styles.statDetail}>
-              {label(efficiency.redzone.pct)}%
-            </Text>
-          </View>
-        )}
-      </View>
+    <View style={styles.statRow}>
+      <Text style={styles.statValue}>{awayVal}</Text>
+      <Text style={styles.statLabel}>{statLabel}</Text>
+      <Text style={styles.statValue}>{homeVal}</Text>
     </View>
   );
 }
 
 // --------- Styles ---------
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b0d14' },
-  scrollContent: { padding: 16, paddingTop: Platform.select({ web: 24, default: 48 }) as number },
-  header: { alignItems: 'center', marginBottom: 20 },
-  title: { color: '#fff', fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  subtitle: { color: '#aab0c2', fontSize: 16, marginTop: 4, textAlign: 'center' },
-  gameStatus: { color: '#66c7ff', fontSize: 14, marginTop: 8, textAlign: 'center', fontWeight: '600' },
-  scoreSection: { marginBottom: 24 },
-  scoreContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', backgroundColor: '#141a2a', borderRadius: 12, padding: 20 },
-  teamScore: { alignItems: 'center', flex: 1 },
-  teamName: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
-  scoreText: { color: '#fff', fontSize: 36, fontWeight: '900' },
-  vs: { color: '#aab0c2', fontSize: 16, fontWeight: '600', marginHorizontal: 20 },
-  statsSection: { marginBottom: 20 },
-  sectionTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
-  teamStatsContainer: { backgroundColor: '#141a2a', borderRadius: 12, padding: 16, marginBottom: 16 },
-  teamStatsTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  noData: { color: '#aab0c2', fontSize: 14, fontStyle: 'italic' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  statItem: { backgroundColor: '#1a1d2e', borderRadius: 8, padding: 12, minWidth: '45%', flex: 1 },
-  statLabel: { color: '#66c7ff', fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  statValue: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 2 },
-  statDetail: { color: '#aab0c2', fontSize: 11 },
-  footer: { alignItems: 'center', marginTop: 20 },
-  footerText: { color: '#9fb0ff', fontSize: 11, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }) as any, textAlign: 'center', opacity: 0.7 },
-  warningCard: { backgroundColor: '#2a1f0d', padding: 16, borderRadius: 12, marginTop: 20, borderLeftWidth: 4, borderLeftColor: '#ffd166' },
-  warn: { color: '#ffd166', fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  warnSub: { color: '#ffd166', fontSize: 12, opacity: 0.8 },
-  loadingContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 40 },
-  loading: { color: '#66c7ff', fontSize: 16, fontWeight: '600' },
-  errorCard: { backgroundColor: '#2a0d0d', padding: 16, borderRadius: 12, marginTop: 20, borderLeftWidth: 4, borderLeftColor: '#ff6b6b' },
-  errorText: { color: '#ff6b6b', fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  errorDetail: { color: '#ff6b6b', fontSize: 12, opacity: 0.8 },
+  root: {
+    flex: 1,
+    backgroundColor: '#004C54', // Philadelphia Eagles midnight green
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerContent: {
+    position: 'absolute',
+    top: '40%',
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF0000',
+    marginRight: 5,
+  },
+  liveText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  gameStatus: {
+    color: '#A5ACAF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  title: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '900',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+    lineHeight: 38,
+  },
+  errorMsg: {
+    color: '#FF6B6B',
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+    marginBottom: 16,
+  },
+  loadingMsg: {
+    color: '#66C7FF',
+    fontSize: 20,
+    fontWeight: '900',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    width: '100%',
+  },
+  teamScore: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  teamName: {
+    color: '#A5ACAF',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 5,
+    letterSpacing: 0.5,
+  },
+  scoreText: {
+    color: '#FFFFFF',
+    fontSize: 44,
+    fontWeight: '900',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 8,
+  },
+  vs: {
+    color: '#FFD700',
+    fontSize: 18,
+    fontWeight: '900',
+    marginHorizontal: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+  },
+  statsSection: {
+    width: '100%',
+    marginVertical: 5,
+  },
+  teamHeaders: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+    paddingHorizontal: 20,
+  },
+  teamHeaderAway: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  teamHeaderHome: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  statLabel: {
+    color: '#A5ACAF',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    flex: 2,
+  },
+  statValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+    flex: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  footerText: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: 9,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    marginTop: 15,
+  },
 });
