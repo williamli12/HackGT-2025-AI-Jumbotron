@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BasicScreen from './screens/BasicScreen';
+import GameSummary from './screens/GameSummary';
 import { useTimer } from './store/useTimer';
 import { useSchedule } from './store/useSchedule';
 import { useEventTesting } from './store/useEventTesting';
@@ -8,6 +10,8 @@ import DebugHUD from './components/DebugHUD';
 import EventHost from './events/EventHost';
 import { registerAllEvents } from './events/registerAll';
 import { logRegisteredEvents } from './events/devUtils';
+
+const Stack = createNativeStackNavigator();
 
 // Register all event components on app start
 registerAllEvents();
@@ -17,7 +21,7 @@ if (__DEV__) {
   logRegisteredEvents();
 }
 
-export default function AppNavigator() {
+function MainScreen() {
   const { elapsedMs } = useTimer();
   const { mode, activeEvent, currentClip, nextEvent, compute } = useSchedule();
   const { testEvent, isTestMode } = useEventTesting();
@@ -33,7 +37,7 @@ export default function AppNavigator() {
   const displayMode = isTestMode ? 'EVENT' : mode;
 
   return (
-    <NavigationContainer>
+    <>
       {displayMode === 'EVENT' && displayEvent
         ? <EventHost event={displayEvent} />
         : <BasicScreen />
@@ -45,6 +49,42 @@ export default function AppNavigator() {
         nextEventAt={nextEvent?.at ?? null}
         nextEventKind={nextEvent?.kind ?? null}
       />
+    </>
+  );
+}
+
+export default function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Main"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#0b0d14',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
+        <Stack.Screen 
+          name="Main" 
+          component={MainScreen} 
+          options={{ 
+            title: 'Secondary Jumbotron',
+            headerShown: false, // Hide header for main screen to preserve current design
+          }} 
+        />
+        <Stack.Screen 
+          name="GameSummary" 
+          component={GameSummary} 
+          options={{ 
+            title: 'Game Summary',
+            headerShown: true,
+          }} 
+        />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
